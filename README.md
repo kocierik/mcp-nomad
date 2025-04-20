@@ -14,17 +14,18 @@ A server that provides a set of tools for managing Nomad clusters through the MC
 - ACL management (tokens, policies, roles)
 - Access to job templates
 
-## Installation
+## Development
 
-1. Clone the repository:
 ```bash
+# Clone the repository
 git clone https://github.com/kocierik/nomad-mcp-server.git
 cd nomad-mcp-server
-```
 
-2. Build the server:
-```bash
-go build
+# install dependencies
+go mod tidy
+
+# Run the MCP inspector
+npx @modelcontextprotocol/inspector go run main.go
 ```
 
 ## Configuration
@@ -34,12 +35,6 @@ The server requires the following environment variables:
 - `NOMAD_ADDR`: The address of the Nomad API server (default: http://localhost:4646)
 - `NOMAD_TOKEN`: The Nomad API token (optional)
 
-## Usage
-
-Run the server:
-```bash
-./nomad-mcp-server
-```
 
 ## Tools
 
@@ -67,7 +62,6 @@ Parameters:
 - `namespace` (string, optional): Namespace to run the job in
 - `detach` (boolean, optional): Whether to detach from the job
 
-Note: The job specification can be provided in either HCL or JSON format. If HCL is provided, it will be automatically converted to JSON before submission to Nomad.
 
 #### stop_job
 Stops a job.
