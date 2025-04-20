@@ -137,11 +137,34 @@ func (c *NomadClient) GetJob(jobID, namespace string) (types.Job, error) {
 
 // RunJob submits a job to Nomad
 func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{}, error) {
-	// Parse the job spec JSON or HCL
+	// Try to parse as JSON first
 	var jobData interface{}
 	if err := json.Unmarshal([]byte(jobSpec), &jobData); err != nil {
-		// If not JSON, assume it's HCL and send as-is
-		jobData = map[string]string{"JobHCL": jobSpec}
+		// If not JSON, assume it's HCL and use Nomad's HCL parser endpoint
+		path := "jobs/parse"
+		parseRequest := map[string]string{
+			"JobHCL": jobSpec,
+		}
+
+		// First parse the HCL to validate and convert to JSON
+		parseResp, err := c.makeRequest("POST", path, nil, parseRequest)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing HCL job spec: %v", err)
+		}
+
+		// Unmarshal the parse response into a map
+		var parsedJob map[string]interface{}
+		if err := json.Unmarshal(parseResp, &parsedJob); err != nil {
+			return nil, fmt.Errorf("error unmarshaling parsed job spec: %v", err)
+		}
+
+		// Use the parsed job data
+		jobData = parsedJob
+	}
+
+	// Wrap the job data in a Job field as required by the Nomad API
+	jobRequest := map[string]interface{}{
+		"Job": jobData,
 	}
 
 	queryParams := map[string]string{}
@@ -149,7 +172,7 @@ func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{
 		queryParams["detach"] = "true"
 	}
 
-	respBody, err := c.makeRequest("POST", "jobs", queryParams, jobData)
+	respBody, err := c.makeRequest("POST", "jobs", queryParams, jobRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -329,4 +352,9 @@ func (c *NomadClient) DrainNode(nodeID string, enable bool, deadline int64) (str
 		return "Node drain enabled with no deadline", nil
 	}
 	return "Node drain disabled", nil
+}
+
+// MakeRequest is a helper function to make HTTP requests to the Nomad API
+func (c *NomadClient) MakeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+	return c.makeRequest(method, path, queryParams, body)
 }

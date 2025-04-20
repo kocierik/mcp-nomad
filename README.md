@@ -1,19 +1,44 @@
-# Nomad MCP 🚀
+# Nomad MCP Server
 
-A Go implementation of the Model Context Protocol (MCP) for HashiCorp Nomad, enabling seamless integration between LLM applications and Nomad cluster management.
+A server that implements the MCP protocol to interact with HashiCorp Nomad. This server provides tools for managing Nomad jobs, deployments, namespaces, nodes, allocations, variables, and more.
 
-## Overview
+## Features
 
-Nomad MCP provides a standardized interface for AI models to interact with Nomad clusters. It exposes Nomad's core functionality as tools and resources through the MCP protocol, allowing Large Language Models to:
-
-- List, get, create, and manage Nomad jobs
-- Monitor deployments 
-- Manage namespaces
-- View and control cluster nodes
-- Access job templates and examples
+- Job Management
+  - List jobs
+  - Get job details
+  - Run jobs
+  - Stop jobs
+  - Restart jobs
+  - Scale jobs
+  - Get job allocations
+  - Get job evaluations
+- Deployment Management
+  - List deployments
+  - Get deployment details
+- Namespace Management
+  - List namespaces
+  - Create namespaces
+  - Delete namespaces
+- Node Management
+  - List nodes
+  - Get node details
+  - Drain nodes
+- Allocation Management
+  - List allocations
+  - Get allocation details
+  - Stop allocations
+- Variable Management
+  - List variables
+  - Get variable details
+  - Create/update variables
+  - Delete variables
+- Job Templates
+  - Access to predefined job templates
 
 ## Development
 
+1. Clone the repository:
 ```bash
 # Clone the repository
 git clone https://github.com/kocierik/nomad-mcp-server.git
@@ -28,121 +53,139 @@ npx @modelcontextprotocol/inspector go run main.go
 
 ## Configuration
 
-Nomad MCP uses the following environment variables:
+The server requires a Nomad API endpoint to be configured. By default, it will use `http://localhost:4646`. You can set the following environment variables to configure the connection:
 
-- `NOMAD_ADDR` - The address of your Nomad server (default: http://localhost:4646)
-- `NOMAD_TOKEN` - Nomad ACL token (if ACLs are enabled)
+- `NOMAD_ADDR`: The address of the Nomad server (default: `http://localhost:4646`)
+- `NOMAD_TOKEN`: The authentication token for the Nomad server (optional)
 
-## Available Tools
+## Usage
 
-### Job Management
+Run the server:
+```bash
+./nomad-mcp-server
+```
 
-- `list_jobs` - List all jobs in a namespace
-- `get_job` - Retrieve details for a specific job
-- `run_job` - Run or update a job from a specification
-- `stop_job` - Stop a running job
+The server implements the MCP protocol and can be used with any MCP-compatible client.
 
-### Deployment Management
+## Tools
 
-- `list_deployments` - List all deployments
-- `get_deployment` - Retrieve details for a specific deployment
+### Job Tools
 
-### Namespace Management
+- `list_jobs`: List all jobs in Nomad
+  - Parameters:
+    - `namespace` (optional): The namespace to list jobs from
+    - `status` (optional): Filter jobs by status (pending, running, dead)
 
-- `list_namespaces` - List all namespaces
-- `create_namespace` - Create a new namespace
-- `delete_namespace` - Delete an existing namespace
+- `get_job`: Get job details by ID
+  - Parameters:
+    - `job_id` (required): The ID of the job to retrieve
+    - `namespace` (optional): The namespace of the job
 
-### Node Management
+- `run_job`: Run a new job or update an existing job
+  - Parameters:
+    - `job_spec` (required): The job specification in HCL or JSON format
+    - `detach` (optional): Return immediately instead of monitoring deployment
 
-- `list_nodes` - List all nodes in the cluster
-- `get_node` - Retrieve details for a specific node
-- `drain_node` - Enable or disable drain mode for a node
+- `stop_job`: Stop a running job
+  - Parameters:
+    - `job_id` (required): The ID of the job to stop
+    - `namespace` (optional): The namespace of the job
+    - `purge` (optional): Purge the job from Nomad instead of just stopping it
 
-## Available Resources
+- `restart_job`: Restart a job
+  - Parameters:
+    - `job_id` (required): The ID of the job to restart
+    - `namespace` (optional): The namespace of the job
+
+- `scale_job`: Scale a job's task group
+  - Parameters:
+    - `job_id` (required): The ID of the job to scale
+    - `group` (required): The task group to scale
+    - `count` (required): The desired count of the task group
+    - `namespace` (optional): The namespace of the job
+
+- `get_job_allocations`: Get allocations for a job
+  - Parameters:
+    - `job_id` (required): The ID of the job
+    - `namespace` (optional): The namespace of the job
+
+- `get_job_evaluations`: Get evaluations for a job
+  - Parameters:
+    - `job_id` (required): The ID of the job
+    - `namespace` (optional): The namespace of the job
+
+### Deployment Tools
+
+- `list_deployments`: List all deployments
+  - Parameters:
+    - `namespace` (optional): The namespace to list deployments from
+
+- `get_deployment`: Get deployment details by ID
+  - Parameters:
+    - `deployment_id` (required): The ID of the deployment to retrieve
+
+### Namespace Tools
+
+- `list_namespaces`: List all namespaces in Nomad
+- `create_namespace`: Create a new namespace
+  - Parameters:
+    - `name` (required): The name of the namespace to create
+    - `description` (optional): Description of the namespace
+- `delete_namespace`: Delete a namespace
+  - Parameters:
+    - `name` (required): The name of the namespace to delete
+
+### Node Tools
+
+- `list_nodes`: List all nodes in the Nomad cluster
+  - Parameters:
+    - `status` (optional): Filter nodes by status (ready, down)
+- `get_node`: Get details for a specific node
+  - Parameters:
+    - `node_id` (required): The ID of the node to retrieve
+- `drain_node`: Enable or disable drain mode for a node
+  - Parameters:
+    - `node_id` (required): The ID of the node to drain
+    - `enable` (required): Enable or disable drain mode
+    - `deadline` (optional): Deadline in seconds for the drain operation
+
+### Allocation Tools
+
+- `list_allocations`: List all allocations in Nomad
+  - Parameters:
+    - `namespace` (optional): The namespace to list allocations from
+    - `job_id` (optional): Filter allocations by job ID
+- `get_allocation`: Get allocation details by ID
+  - Parameters:
+    - `allocation_id` (required): The ID of the allocation to retrieve
+- `stop_allocation`: Stop a running allocation
+  - Parameters:
+    - `allocation_id` (required): The ID of the allocation to stop
+
+### Variable Tools
+
+- `list_variables`: List all variables in Nomad
+  - Parameters:
+    - `prefix` (optional): Optional prefix to filter variables
+- `get_variable`: Get variable details by path
+  - Parameters:
+    - `path` (required): The path of the variable to retrieve
+- `create_variable`: Create or update a variable
+  - Parameters:
+    - `path` (required): The path where to create the variable
+    - `items` (required): The key-value pairs to store in the variable
+- `delete_variable`: Delete a variable
+  - Parameters:
+    - `path` (required): The path of the variable to delete
+
+## Resources
 
 ### Job Templates
 
-- `nomad://templates` - List all available job templates
-- `nomad://templates/{name}` - Retrieve a specific job template
+The server provides access to predefined job templates through the following resources:
 
-## Usage Examples
-
-### Listing Jobs
-
-```
-Call tool: list_jobs
-```
-
-### Getting Job Details
-
-```
-Call tool: get_job
-Parameters:
-  job_id: web-app
-  namespace: default
-```
-
-### Running a Job
-
-```
-Call tool: run_job
-Parameters:
-  job_spec: |
-    job "example" {
-      datacenters = ["dc1"]
-      type = "service"
-      group "example" {
-        count = 1
-        task "server" {
-          driver = "docker"
-          config {
-            image = "nginx:latest"
-            ports = ["http"]
-          }
-        }
-      }
-    }
-```
-
-### Using Job Templates
-
-```
-// First, list available templates
-Read resource: nomad://templates
-
-// Then, get a specific template
-Read resource: nomad://templates/service
-
-// Modify as needed and run the job
-Call tool: run_job
-Parameters:
-  job_spec: <modified template content>
-```
-
-## Project Structure
-
-```
-nomad-mcp/
-  ├── main.go              # Main entry point
-  ├── tools/               # Tool implementations
-  │   ├── jobs.go          # Job management tools
-  │   ├── deployments.go   # Deployment management tools
-  │   ├── namespaces.go    # Namespace management tools
-  │   └── nodes.go         # Node management tools
-  ├── utils/               # Utility functions
-  │   ├── client.go        # Nomad API client
-  │   └── templates.go     # Job template utilities
-  └── types/               # Type definitions
-      ├── jobs.go          # Job-related types
-      ├── deployments.go   # Deployment-related types
-      ├── namespaces.go    # Namespace-related types
-      └── nodes.go         # Node-related types
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- `nomad://templates`: List of all available job templates
+- `nomad://templates/{name}`: Specific job template by name
 
 ## License
 
