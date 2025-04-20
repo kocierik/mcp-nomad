@@ -1,0 +1,92 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/kocierik/nomad-mcp-server/utils"
+	"github.com/mark3labs/mcp-go/mcp"
+)
+
+// ListVolumesHandler returns a handler for listing volumes
+func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+
+		// Get optional parameters
+		nodeID, _ := request.Params.Arguments["node_id"].(string)
+		pluginID, _ := request.Params.Arguments["plugin_id"].(string)
+		nextToken, _ := request.Params.Arguments["next_token"].(string)
+		perPage, _ := request.Params.Arguments["per_page"].(int)
+		filter, _ := request.Params.Arguments["filter"].(string)
+
+		// Validate node_id and plugin_id if provided
+		if nodeID != "" && len(nodeID)%2 != 0 {
+			return mcp.NewToolResultError("node_id must have an even number of hexadecimal characters"), nil
+		}
+		if pluginID != "" && len(pluginID)%2 != 0 {
+			return mcp.NewToolResultError("plugin_id must have an even number of hexadecimal characters"), nil
+		}
+
+		// List volumes with the specified parameters
+		volumes, err := client.ListVolumes(nodeID, pluginID, nextToken, perPage, filter)
+		if err != nil {
+			logger.Printf("Error listing volumes: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to list volumes", err), nil
+		}
+
+		// Format the response
+		volumesJSON, err := json.MarshalIndent(volumes, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format volume list", err), nil
+		}
+
+		return mcp.NewToolResultText(string(volumesJSON)), nil
+	}
+}
+
+// GetVolumeHandler returns a handler for getting volume details
+func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Get required parameters
+		volumeID, ok := request.Params.Arguments["volume_id"].(string)
+		if !ok || volumeID == "" {
+			return mcp.NewToolResultError("volume_id is required"), nil
+		}
+
+		volume, err := client.GetVolume(volumeID)
+
+		if err != nil {
+			logger.Printf("Error getting volume: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get volume", err), nil
+		}
+
+		volumeJSON, err := json.MarshalIndent(volume, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format volume details", err), nil
+		}
+
+		return mcp.NewToolResultText(string(volumeJSON)), nil
+	}
+}
+
+// DeleteVolumeHandler returns a handler for deleting a volume
+func DeleteVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Get required parameters
+		volumeID, ok := request.Params.Arguments["volume_id"].(string)
+		if !ok || volumeID == "" {
+			return mcp.NewToolResultError("volume_id is required"), nil
+		}
+
+		err := client.DeleteVolume(volumeID)
+
+		if err != nil {
+			logger.Printf("Error deleting volume: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to delete volume", err), nil
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("Volume %s deleted successfully", volumeID)), nil
+	}
+}

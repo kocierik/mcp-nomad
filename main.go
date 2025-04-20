@@ -56,6 +56,12 @@ func main() {
 	// Register resource for job templates
 	registerJobTemplates(s, logger)
 
+	// Register volume tools
+	registerVolumeTools(s, nomadClient, logger)
+
+	// Register ACL tools
+	registerACLTools(s, nomadClient, logger)
+
 	// Start the MCP server using stdio
 	logger.Println("Starting Nomad MCP server...")
 	if err := server.ServeStdio(s); err != nil {
@@ -416,4 +422,172 @@ func registerJobTemplates(s *server.MCPServer, logger *log.Logger) {
 			},
 		}, nil
 	})
+}
+
+func registerVolumeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List volumes tool
+	listVolumesTool := mcp.NewTool("list_volumes",
+		mcp.WithDescription("List all volumes in a namespace"),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace to list volumes from (optional)"),
+		),
+	)
+	s.AddTool(listVolumesTool, tools.ListVolumesHandler(nomadClient, logger))
+
+	// Get volume tool
+	getVolumeTool := mcp.NewTool("get_volume",
+		mcp.WithDescription("Get details of a specific volume"),
+		mcp.WithString("volume_id",
+			mcp.Required(),
+			mcp.Description("ID of the volume to get"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace of the volume (optional)"),
+		),
+	)
+	s.AddTool(getVolumeTool, tools.GetVolumeHandler(nomadClient, logger))
+
+	// Delete volume tool
+	deleteVolumeTool := mcp.NewTool("delete_volume",
+		mcp.WithDescription("Delete a volume"),
+		mcp.WithString("volume_id",
+			mcp.Required(),
+			mcp.Description("ID of the volume to delete"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace of the volume (optional)"),
+		),
+	)
+	s.AddTool(deleteVolumeTool, tools.DeleteVolumeHandler(nomadClient, logger))
+}
+
+func registerACLTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// ACL Token tools
+	listACLTokensTool := mcp.NewTool("list_acl_tokens",
+		mcp.WithDescription("List all ACL tokens"),
+	)
+	s.AddTool(listACLTokensTool, tools.ListACLTokensHandler(nomadClient, logger))
+
+	getACLTokenTool := mcp.NewTool("get_acl_token",
+		mcp.WithDescription("Get details of a specific ACL token"),
+		mcp.WithString("accessor_id",
+			mcp.Required(),
+			mcp.Description("Accessor ID of the token to get"),
+		),
+	)
+	s.AddTool(getACLTokenTool, tools.GetACLTokenHandler(nomadClient, logger))
+
+	createACLTokenTool := mcp.NewTool("create_acl_token",
+		mcp.WithDescription("Create a new ACL token"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the token"),
+		),
+		mcp.WithString("type",
+			mcp.Required(),
+			mcp.Description("Type of the token (client or management)"),
+			mcp.Enum("client", "management"),
+		),
+		mcp.WithArray("policies",
+			mcp.Description("List of policy names to associate with the token"),
+		),
+		mcp.WithBoolean("global",
+			mcp.Description("Whether the token is global (default: false)"),
+		),
+	)
+	s.AddTool(createACLTokenTool, tools.CreateACLTokenHandler(nomadClient, logger))
+
+	deleteACLTokenTool := mcp.NewTool("delete_acl_token",
+		mcp.WithDescription("Delete an ACL token"),
+		mcp.WithString("accessor_id",
+			mcp.Required(),
+			mcp.Description("Accessor ID of the token to delete"),
+		),
+	)
+	s.AddTool(deleteACLTokenTool, tools.DeleteACLTokenHandler(nomadClient, logger))
+
+	// ACL Policy tools
+	listACLPoliciesTool := mcp.NewTool("list_acl_policies",
+		mcp.WithDescription("List all ACL policies"),
+	)
+	s.AddTool(listACLPoliciesTool, tools.ListACLPoliciesHandler(nomadClient, logger))
+
+	getACLPolicyTool := mcp.NewTool("get_acl_policy",
+		mcp.WithDescription("Get details of a specific ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy to get"),
+		),
+	)
+	s.AddTool(getACLPolicyTool, tools.GetACLPolicyHandler(nomadClient, logger))
+
+	createACLPolicyTool := mcp.NewTool("create_acl_policy",
+		mcp.WithDescription("Create a new ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy"),
+		),
+		mcp.WithString("description",
+			mcp.Description("Description of the policy"),
+		),
+		mcp.WithString("rules",
+			mcp.Required(),
+			mcp.Description("HCL rules for the policy"),
+		),
+	)
+	s.AddTool(createACLPolicyTool, tools.CreateACLPolicyHandler(nomadClient, logger))
+
+	deleteACLPolicyTool := mcp.NewTool("delete_acl_policy",
+		mcp.WithDescription("Delete an ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy to delete"),
+		),
+	)
+	s.AddTool(deleteACLPolicyTool, tools.DeleteACLPolicyHandler(nomadClient, logger))
+
+	// ACL Role tools
+	listACLRolesTool := mcp.NewTool("list_acl_roles",
+		mcp.WithDescription("List all ACL roles"),
+	)
+	s.AddTool(listACLRolesTool, tools.ListACLRolesHandler(nomadClient, logger))
+
+	getACLRoleTool := mcp.NewTool("get_acl_role",
+		mcp.WithDescription("Get details of a specific ACL role"),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("ID of the role to get"),
+		),
+	)
+	s.AddTool(getACLRoleTool, tools.GetACLRoleHandler(nomadClient, logger))
+
+	createACLRoleTool := mcp.NewTool("create_acl_role",
+		mcp.WithDescription("Create a new ACL role"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the role"),
+		),
+		mcp.WithString("description",
+			mcp.Description("Description of the role"),
+		),
+		mcp.WithArray("policies",
+			mcp.Description("List of policy names to associate with the role"),
+		),
+	)
+	s.AddTool(createACLRoleTool, tools.CreateACLRoleHandler(nomadClient, logger))
+
+	deleteACLRoleTool := mcp.NewTool("delete_acl_role",
+		mcp.WithDescription("Delete an ACL role"),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("ID of the role to delete"),
+		),
+	)
+	s.AddTool(deleteACLRoleTool, tools.DeleteACLRoleHandler(nomadClient, logger))
+
+	// Bootstrap ACL token tool
+	bootstrapACLTokenTool := mcp.NewTool("bootstrap_acl_token",
+		mcp.WithDescription("Bootstrap the ACL system and get the initial management token"),
+	)
+	s.AddTool(bootstrapACLTokenTool, tools.BootstrapACLTokenHandler(nomadClient, logger))
 }
