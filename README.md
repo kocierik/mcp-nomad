@@ -222,11 +222,6 @@ Parameters:
 - `volume_id` (string, required): ID of the volume to get
 - `namespace` (string, optional): Namespace of the volume
 
-#### create_volume
-Creates a new volume.
-
-Parameters:
-- `volume_spec` (string, required): JSON specification of the volume to create
 
 #### delete_volume
 Deletes a volume.
@@ -238,6 +233,9 @@ Parameters:
 ### ACL Tools
 
 #### Token Management
+
+##### bootstrap_acl_token
+Bootstraps the ACL system and returns the initial management token.
 
 ##### list_acl_tokens
 Lists all ACL tokens.
@@ -252,7 +250,10 @@ Parameters:
 Creates a new ACL token.
 
 Parameters:
-- `token_spec` (string, required): JSON specification of the token to create
+- `name` (string, required): Name of the token
+- `type` (string, required): Type of the token (client or management)
+- `policies` (array, optional): List of policy names to attach to the token
+- `global` (boolean, optional): Whether the token is global
 
 ##### delete_acl_token
 Deletes an ACL token.
@@ -275,7 +276,9 @@ Parameters:
 Creates a new ACL policy.
 
 Parameters:
-- `policy_spec` (string, required): JSON specification of the policy to create
+- `name` (string, required): Name of the policy
+- `description` (string, optional): Description of the policy
+- `rules` (string, required): HCL rules for the policy
 
 ##### delete_acl_policy
 Deletes an ACL policy.
@@ -298,7 +301,9 @@ Parameters:
 Creates a new ACL role.
 
 Parameters:
-- `role_spec` (string, required): JSON specification of the role to create
+- `name` (string, required): Name of the role
+- `description` (string, optional): Description of the role
+- `policies` (array, required): List of policy names to attach to the role
 
 ##### delete_acl_role
 Deletes an ACL role.
