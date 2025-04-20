@@ -90,3 +90,31 @@ func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 		return mcp.NewToolResultText(fmt.Sprintf("Drain mode %s for node %s. %s", status, nodeID, result)), nil
 	}
 }
+
+// EligibilityNodeHandler returns a handler for the eligibility_node tool
+func EligibilityNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		nodeID, ok := request.Params.Arguments["node_id"].(string)
+		if !ok || nodeID == "" {
+			return mcp.NewToolResultError("Node ID is required"), nil
+		}
+
+		eligible, ok := request.Params.Arguments["eligible"].(string)
+		if !ok {
+			return mcp.NewToolResultError("Eligible parameter must be 'eligible' or 'ineligible'"), nil
+		}
+
+		_, err := client.EligibilityNode(nodeID, eligible)
+		if err != nil {
+			logger.Printf("Error setting eligibility for node %s: %v", nodeID, err)
+			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to set eligibility for node %s", nodeID), err), nil
+		}
+
+		status := "enabled"
+		if eligible == "ineligible" {
+			status = "disabled"
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("Eligibility %s for node %s.", status, nodeID)), nil
+	}
+}

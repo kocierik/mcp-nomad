@@ -354,6 +354,27 @@ func (c *NomadClient) DrainNode(nodeID string, enable bool, deadline int64) (str
 	return "Node drain disabled", nil
 }
 
+// DrainNode enables or disables drain mode for a node
+func (c *NomadClient) EligibilityNode(nodeID string, eligible string) (types.NodeSummary, error) {
+	path := fmt.Sprintf("node/%s/eligibility", nodeID)
+
+	eligibilitySpec := map[string]interface{}{
+		"Eligibility": eligible,
+	}
+
+	respBody, err := c.makeRequest("POST", path, nil, eligibilitySpec)
+	if err != nil {
+		return types.NodeSummary{}, err
+	}
+
+	var nodes types.NodeSummary
+	if err := json.Unmarshal(respBody, &nodes); err != nil {
+		return types.NodeSummary{}, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return nodes, nil
+}
+
 // MakeRequest is a helper function to make HTTP requests to the Nomad API
 func (c *NomadClient) MakeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
 	return c.makeRequest(method, path, queryParams, body)

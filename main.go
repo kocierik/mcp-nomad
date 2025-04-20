@@ -213,6 +213,20 @@ func registerNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logg
 		),
 	)
 	s.AddTool(drainNodeTool, tools.DrainNodeHandler(nomadClient, logger))
+
+	// Eligibility node tool
+	eligibilityNodeTool := mcp.NewTool("eligibility_node",
+		mcp.WithDescription("Set eligibility for a node"),
+		mcp.WithString("node_id",
+			mcp.Required(),
+			mcp.Description("The ID of the node to set eligibility for"),
+		),
+		mcp.WithString("eligible",
+			mcp.Required(),
+			mcp.Description("The eligibility status to set (eligible or ineligible)"),
+		),
+	)
+	s.AddTool(eligibilityNodeTool, tools.EligibilityNodeHandler(nomadClient, logger))
 }
 
 // Register allocation tools
