@@ -9,34 +9,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// RestartJobHandler returns a handler for restarting a job
-func RestartJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
-		if !ok || jobID == "" {
-			return mcp.NewToolResultError("job_id is required"), nil
-		}
-
-		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
-
-		path := fmt.Sprintf("job/%s/restart", jobID)
-		if namespace != "default" {
-			path = fmt.Sprintf("namespace/%s/job/%s/restart", namespace, jobID)
-		}
-
-		body, err := client.MakeRequest("POST", path, nil, nil)
-		if err != nil {
-			logger.Printf("Error restarting job: %v", err)
-			return mcp.NewToolResultErrorFromErr("Failed to restart job", err), nil
-		}
-
-		return mcp.NewToolResultText(string(body)), nil
-	}
-}
-
 // ScaleJobHandler returns a handler for scaling a job
 func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

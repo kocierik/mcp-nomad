@@ -298,18 +298,6 @@ func registerVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, 
 
 // Register additional job operation tools
 func registerJobOperationTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
-	// Restart job tool
-	restartJobTool := mcp.NewTool("restart_job",
-		mcp.WithDescription("Restart a job"),
-		mcp.WithString("job_id",
-			mcp.Required(),
-			mcp.Description("The ID of the job to restart"),
-		),
-		mcp.WithString("namespace",
-			mcp.Description("The namespace of the job (default: default)"),
-		),
-	)
-	s.AddTool(restartJobTool, tools.RestartJobHandler(nomadClient, logger))
 
 	// Scale job tool
 	scaleJobTool := mcp.NewTool("scale_job",
