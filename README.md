@@ -1,62 +1,38 @@
 # Nomad MCP Server
 
-A server that implements the MCP protocol to interact with HashiCorp Nomad. This server provides tools for managing Nomad jobs, deployments, namespaces, nodes, allocations, variables, and more.
+A server that provides a set of tools for managing Nomad clusters through the MCP (Model Control Protocol) interface.
 
 ## Features
 
-- Job Management
-  - List jobs
-  - Get job details
-  - Run jobs
-  - Stop jobs
-  - Restart jobs
-  - Scale jobs
-  - Get job allocations
-  - Get job evaluations
-- Deployment Management
-  - List deployments
-  - Get deployment details
-- Namespace Management
-  - List namespaces
-  - Create namespaces
-  - Delete namespaces
-- Node Management
-  - List nodes
-  - Get node details
-  - Drain nodes
-- Allocation Management
-  - List allocations
-  - Get allocation details
-  - Stop allocations
-- Variable Management
-  - List variables
-  - Get variable details
-  - Create/update variables
-  - Delete variables
-- Job Templates
-  - Access to predefined job templates
+- Job management (list, get, run, stop, restart, scale)
+- Deployment management (list, get)
+- Namespace management (list, create, delete)
+- Node management (list, get, drain)
+- Allocation management (list, get, stop)
+- Variable management (list, get, create, delete)
+- Volume management (list, get, create, delete)
+- ACL management (tokens, policies, roles)
+- Access to job templates
 
-## Development
+## Installation
 
 1. Clone the repository:
 ```bash
-# Clone the repository
 git clone https://github.com/kocierik/nomad-mcp-server.git
 cd nomad-mcp-server
+```
 
-# install dependencies
-go mod tidy
-
-# Run the MCP inspector
-npx @modelcontextprotocol/inspector go run main.go
+2. Build the server:
+```bash
+go build
 ```
 
 ## Configuration
 
-The server requires a Nomad API endpoint to be configured. By default, it will use `http://localhost:4646`. You can set the following environment variables to configure the connection:
+The server requires the following environment variables:
 
-- `NOMAD_ADDR`: The address of the Nomad server (default: `http://localhost:4646`)
-- `NOMAD_TOKEN`: The authentication token for the Nomad server (optional)
+- `NOMAD_ADDR`: The address of the Nomad API server (default: http://localhost:4646)
+- `NOMAD_TOKEN`: The Nomad API token (optional)
 
 ## Usage
 
@@ -65,128 +41,277 @@ Run the server:
 ./nomad-mcp-server
 ```
 
-The server implements the MCP protocol and can be used with any MCP-compatible client.
-
 ## Tools
 
 ### Job Tools
 
-- `list_jobs`: List all jobs in Nomad
-  - Parameters:
-    - `namespace` (optional): The namespace to list jobs from
-    - `status` (optional): Filter jobs by status (pending, running, dead)
+#### list_jobs
+Lists all jobs in a namespace.
 
-- `get_job`: Get job details by ID
-  - Parameters:
-    - `job_id` (required): The ID of the job to retrieve
-    - `namespace` (optional): The namespace of the job
+Parameters:
+- `namespace` (string, optional): Namespace to list jobs from
+- `status` (string, optional): Filter jobs by status
 
-- `run_job`: Run a new job or update an existing job
-  - Parameters:
-    - `job_spec` (required): The job specification in HCL or JSON format
-    - `detach` (optional): Return immediately instead of monitoring deployment
+#### get_job
+Gets details of a specific job.
 
-- `stop_job`: Stop a running job
-  - Parameters:
-    - `job_id` (required): The ID of the job to stop
-    - `namespace` (optional): The namespace of the job
-    - `purge` (optional): Purge the job from Nomad instead of just stopping it
+Parameters:
+- `job_id` (string, required): ID of the job to get
+- `namespace` (string, optional): Namespace of the job
 
-- `restart_job`: Restart a job
-  - Parameters:
-    - `job_id` (required): The ID of the job to restart
-    - `namespace` (optional): The namespace of the job
+#### run_job
+Runs a new job.
 
-- `scale_job`: Scale a job's task group
-  - Parameters:
-    - `job_id` (required): The ID of the job to scale
-    - `group` (required): The task group to scale
-    - `count` (required): The desired count of the task group
-    - `namespace` (optional): The namespace of the job
+Parameters:
+- `job_spec` (string, required): Job specification in HCL or JSON format
+- `namespace` (string, optional): Namespace to run the job in
+- `detach` (boolean, optional): Whether to detach from the job
 
-- `get_job_allocations`: Get allocations for a job
-  - Parameters:
-    - `job_id` (required): The ID of the job
-    - `namespace` (optional): The namespace of the job
+Note: The job specification can be provided in either HCL or JSON format. If HCL is provided, it will be automatically converted to JSON before submission to Nomad.
 
-- `get_job_evaluations`: Get evaluations for a job
-  - Parameters:
-    - `job_id` (required): The ID of the job
-    - `namespace` (optional): The namespace of the job
+#### stop_job
+Stops a job.
+
+Parameters:
+- `job_id` (string, required): ID of the job to stop
+- `namespace` (string, optional): Namespace of the job
+- `purge` (boolean, optional): Whether to purge the job
+
+#### restart_job
+Restarts a job.
+
+Parameters:
+- `job_id` (string, required): ID of the job to restart
+- `namespace` (string, optional): Namespace of the job
+
+#### scale_job
+Scales a job's task group.
+
+Parameters:
+- `job_id` (string, required): ID of the job to scale
+- `group` (string, required): Name of the task group to scale
+- `count` (integer, required): Desired count for the task group
+- `namespace` (string, optional): Namespace of the job
+
+#### get_job_allocations
+Gets allocations for a job.
+
+Parameters:
+- `job_id` (string, required): ID of the job
+- `namespace` (string, optional): Namespace of the job
+
+#### get_job_evaluations
+Gets evaluations for a job.
+
+Parameters:
+- `job_id` (string, required): ID of the job
+- `namespace` (string, optional): Namespace of the job
 
 ### Deployment Tools
 
-- `list_deployments`: List all deployments
-  - Parameters:
-    - `namespace` (optional): The namespace to list deployments from
+#### list_deployments
+Lists all deployments.
 
-- `get_deployment`: Get deployment details by ID
-  - Parameters:
-    - `deployment_id` (required): The ID of the deployment to retrieve
+Parameters:
+- `namespace` (string, optional): Namespace to list deployments from
+
+#### get_deployment
+Gets details of a specific deployment.
+
+Parameters:
+- `deployment_id` (string, required): ID of the deployment to get
 
 ### Namespace Tools
 
-- `list_namespaces`: List all namespaces in Nomad
-- `create_namespace`: Create a new namespace
-  - Parameters:
-    - `name` (required): The name of the namespace to create
-    - `description` (optional): Description of the namespace
-- `delete_namespace`: Delete a namespace
-  - Parameters:
-    - `name` (required): The name of the namespace to delete
+#### list_namespaces
+Lists all namespaces.
+
+#### create_namespace
+Creates a new namespace.
+
+Parameters:
+- `namespace_spec` (string, required): JSON specification of the namespace to create
+
+#### delete_namespace
+Deletes a namespace.
+
+Parameters:
+- `name` (string, required): Name of the namespace to delete
 
 ### Node Tools
 
-- `list_nodes`: List all nodes in the Nomad cluster
-  - Parameters:
-    - `status` (optional): Filter nodes by status (ready, down)
-- `get_node`: Get details for a specific node
-  - Parameters:
-    - `node_id` (required): The ID of the node to retrieve
-- `drain_node`: Enable or disable drain mode for a node
-  - Parameters:
-    - `node_id` (required): The ID of the node to drain
-    - `enable` (required): Enable or disable drain mode
-    - `deadline` (optional): Deadline in seconds for the drain operation
+#### list_nodes
+Lists all nodes in the cluster.
+
+Parameters:
+- `status` (string, optional): Filter nodes by status
+
+#### get_node
+Gets details of a specific node.
+
+Parameters:
+- `node_id` (string, required): ID of the node to get
+
+#### drain_node
+Drains a node.
+
+Parameters:
+- `node_id` (string, required): ID of the node to drain
+- `enable` (boolean, required): Whether to enable or disable drain mode
+- `deadline` (integer, optional): Deadline in seconds for the drain operation
 
 ### Allocation Tools
 
-- `list_allocations`: List all allocations in Nomad
-  - Parameters:
-    - `namespace` (optional): The namespace to list allocations from
-    - `job_id` (optional): Filter allocations by job ID
-- `get_allocation`: Get allocation details by ID
-  - Parameters:
-    - `allocation_id` (required): The ID of the allocation to retrieve
-- `stop_allocation`: Stop a running allocation
-  - Parameters:
-    - `allocation_id` (required): The ID of the allocation to stop
+#### list_allocations
+Lists all allocations.
+
+Parameters:
+- `namespace` (string, optional): Namespace to list allocations from
+
+#### get_allocation
+Gets details of a specific allocation.
+
+Parameters:
+- `allocation_id` (string, required): ID of the allocation to get
+
+#### stop_allocation
+Stops an allocation.
+
+Parameters:
+- `allocation_id` (string, required): ID of the allocation to stop
 
 ### Variable Tools
 
-- `list_variables`: List all variables in Nomad
-  - Parameters:
-    - `prefix` (optional): Optional prefix to filter variables
-- `get_variable`: Get variable details by path
-  - Parameters:
-    - `path` (required): The path of the variable to retrieve
-- `create_variable`: Create or update a variable
-  - Parameters:
-    - `path` (required): The path where to create the variable
-    - `items` (required): The key-value pairs to store in the variable
-- `delete_variable`: Delete a variable
-  - Parameters:
-    - `path` (required): The path of the variable to delete
+#### list_variables
+Lists all variables with an optional prefix filter.
+
+Parameters:
+- `prefix` (string, optional): Prefix to filter variables by
+
+#### get_variable
+Gets details of a specific variable.
+
+Parameters:
+- `path` (string, required): Path of the variable to get
+
+#### create_variable
+Creates or updates a variable.
+
+Parameters:
+- `path` (string, required): Path of the variable to create/update
+- `items` (object, required): Key-value pairs for the variable
+
+#### delete_variable
+Deletes a variable.
+
+Parameters:
+- `path` (string, required): Path of the variable to delete
+
+### Volume Tools
+
+#### list_volumes
+Lists all volumes in a namespace.
+
+Parameters:
+- `namespace` (string, optional): Namespace to list volumes from
+
+#### get_volume
+Gets details of a specific volume.
+
+Parameters:
+- `volume_id` (string, required): ID of the volume to get
+- `namespace` (string, optional): Namespace of the volume
+
+#### create_volume
+Creates a new volume.
+
+Parameters:
+- `volume_spec` (string, required): JSON specification of the volume to create
+
+#### delete_volume
+Deletes a volume.
+
+Parameters:
+- `volume_id` (string, required): ID of the volume to delete
+- `namespace` (string, optional): Namespace of the volume
+
+### ACL Tools
+
+#### Token Management
+
+##### list_acl_tokens
+Lists all ACL tokens.
+
+##### get_acl_token
+Gets details of a specific ACL token.
+
+Parameters:
+- `accessor_id` (string, required): Accessor ID of the token to get
+
+##### create_acl_token
+Creates a new ACL token.
+
+Parameters:
+- `token_spec` (string, required): JSON specification of the token to create
+
+##### delete_acl_token
+Deletes an ACL token.
+
+Parameters:
+- `accessor_id` (string, required): Accessor ID of the token to delete
+
+#### Policy Management
+
+##### list_acl_policies
+Lists all ACL policies.
+
+##### get_acl_policy
+Gets details of a specific ACL policy.
+
+Parameters:
+- `name` (string, required): Name of the policy to get
+
+##### create_acl_policy
+Creates a new ACL policy.
+
+Parameters:
+- `policy_spec` (string, required): JSON specification of the policy to create
+
+##### delete_acl_policy
+Deletes an ACL policy.
+
+Parameters:
+- `name` (string, required): Name of the policy to delete
+
+#### Role Management
+
+##### list_acl_roles
+Lists all ACL roles.
+
+##### get_acl_role
+Gets details of a specific ACL role.
+
+Parameters:
+- `id` (string, required): ID of the role to get
+
+##### create_acl_role
+Creates a new ACL role.
+
+Parameters:
+- `role_spec` (string, required): JSON specification of the role to create
+
+##### delete_acl_role
+Deletes an ACL role.
+
+Parameters:
+- `id` (string, required): ID of the role to delete
 
 ## Resources
 
 ### Job Templates
 
-The server provides access to predefined job templates through the following resources:
-
-- `nomad://templates`: List of all available job templates
-- `nomad://templates/{name}`: Specific job template by name
+The server provides access to job templates that can be used as a starting point for creating new jobs. These templates are available through the `job_templates` resource.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT
