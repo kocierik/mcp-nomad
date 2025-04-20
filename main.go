@@ -44,6 +44,15 @@ func main() {
 	// Register node tools
 	registerNodeTools(s, nomadClient, logger)
 
+	// Register allocation tools
+	registerAllocationTools(s, nomadClient, logger)
+
+	// Register variable tools
+	registerVariableTools(s, nomadClient, logger)
+
+	// Register additional job operation tools
+	registerJobOperationTools(s, nomadClient, logger)
+
 	// Register resource for job templates
 	registerJobTemplates(s, logger)
 
@@ -204,6 +213,150 @@ func registerNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logg
 		),
 	)
 	s.AddTool(drainNodeTool, tools.DrainNodeHandler(nomadClient, logger))
+}
+
+// Register allocation tools
+func registerAllocationTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List allocations tool
+	listAllocationsTool := mcp.NewTool("list_allocations",
+		mcp.WithDescription("List all allocations in Nomad"),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace to list allocations from (default: default)"),
+		),
+		mcp.WithString("job_id",
+			mcp.Description("Filter allocations by job ID"),
+		),
+	)
+	s.AddTool(listAllocationsTool, tools.ListAllocationsHandler(nomadClient, logger))
+
+	// Get allocation tool
+	getAllocationTool := mcp.NewTool("get_allocation",
+		mcp.WithDescription("Get allocation details by ID"),
+		mcp.WithString("allocation_id",
+			mcp.Required(),
+			mcp.Description("The ID of the allocation to retrieve"),
+		),
+	)
+	s.AddTool(getAllocationTool, tools.GetAllocationHandler(nomadClient, logger))
+
+	// Stop allocation tool
+	stopAllocationTool := mcp.NewTool("stop_allocation",
+		mcp.WithDescription("Stop a running allocation"),
+		mcp.WithString("allocation_id",
+			mcp.Required(),
+			mcp.Description("The ID of the allocation to stop"),
+		),
+	)
+	s.AddTool(stopAllocationTool, tools.StopAllocationHandler(nomadClient, logger))
+}
+
+// Register variable tools
+func registerVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List variables tool
+	listVariablesTool := mcp.NewTool("list_variables",
+		mcp.WithDescription("List all variables in Nomad"),
+		mcp.WithString("prefix",
+			mcp.Description("Optional prefix to filter variables"),
+		),
+	)
+	s.AddTool(listVariablesTool, tools.ListVariablesHandler(nomadClient, logger))
+
+	// Get variable tool
+	getVariableTool := mcp.NewTool("get_variable",
+		mcp.WithDescription("Get variable details by path"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path of the variable to retrieve"),
+		),
+	)
+	s.AddTool(getVariableTool, tools.GetVariableHandler(nomadClient, logger))
+
+	// Create variable tool
+	createVariableTool := mcp.NewTool("create_variable",
+		mcp.WithDescription("Create or update a variable"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path where to create the variable"),
+		),
+		mcp.WithObject("items",
+			mcp.Required(),
+			mcp.Description("The key-value pairs to store in the variable"),
+		),
+	)
+	s.AddTool(createVariableTool, tools.CreateVariableHandler(nomadClient, logger))
+
+	// Delete variable tool
+	deleteVariableTool := mcp.NewTool("delete_variable",
+		mcp.WithDescription("Delete a variable"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path of the variable to delete"),
+		),
+	)
+	s.AddTool(deleteVariableTool, tools.DeleteVariableHandler(nomadClient, logger))
+}
+
+// Register additional job operation tools
+func registerJobOperationTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// Restart job tool
+	restartJobTool := mcp.NewTool("restart_job",
+		mcp.WithDescription("Restart a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job to restart"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(restartJobTool, tools.RestartJobHandler(nomadClient, logger))
+
+	// Scale job tool
+	scaleJobTool := mcp.NewTool("scale_job",
+		mcp.WithDescription("Scale a job's task group"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job to scale"),
+		),
+		mcp.WithString("group",
+			mcp.Required(),
+			mcp.Description("The task group to scale"),
+		),
+		mcp.WithNumber("count",
+			mcp.Required(),
+			mcp.Description("The desired count of the task group"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(scaleJobTool, tools.ScaleJobHandler(nomadClient, logger))
+
+	// Get job allocations tool
+	getJobAllocationsTool := mcp.NewTool("get_job_allocations",
+		mcp.WithDescription("Get allocations for a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(getJobAllocationsTool, tools.GetJobAllocationsHandler(nomadClient, logger))
+
+	// Get job evaluations tool
+	getJobEvaluationsTool := mcp.NewTool("get_job_evaluations",
+		mcp.WithDescription("Get evaluations for a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(getJobEvaluationsTool, tools.GetJobEvaluationsHandler(nomadClient, logger))
 }
 
 // Register job templates as resources
