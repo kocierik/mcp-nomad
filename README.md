@@ -12,18 +12,18 @@ Nomad MCP provides a standardized interface for AI models to interact with Nomad
 - View and control cluster nodes
 - Access job templates and examples
 
-## Installation
+## Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nomad-mcp.git
-cd nomad-mcp
+git clone https://github.com/kocierik/nomad-mcp-server.git
+cd nomad-mcp-server
 
-# Build the executable
-go build -o nomad-mcp
+# install dependencies
+go mod tidy
 
-# Run the MCP server
-./nomad-mcp
+# Run the MCP inspector
+npx @modelcontextprotocol/inspector go run main.go
 ```
 
 ## Configuration
