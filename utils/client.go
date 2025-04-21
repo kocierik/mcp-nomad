@@ -1,4 +1,5 @@
 // File: utils/client.go
+// Package utils provides utility functions and types for interacting with the Nomad API.
 package utils
 
 import (
@@ -15,14 +16,24 @@ import (
 	"github.com/kocierik/nomad-mcp-server/types"
 )
 
-// NomadClient handles interactions with the Nomad API
+// NomadClient handles interactions with the Nomad API.
+// It provides methods for managing jobs, deployments, namespaces, nodes, allocations,
+// variables, volumes, and ACL tokens.
 type NomadClient struct {
 	address    string
 	token      string
 	httpClient *http.Client
 }
 
-// NewNomadClient creates a new Nomad client
+// NewNomadClient creates a new Nomad client with the specified address and token.
+// It validates the connection to the Nomad server before returning.
+//
+// Example:
+//
+//	client, err := NewNomadClient("http://localhost:4646", "your-token")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func NewNomadClient(address, token string) (*NomadClient, error) {
 	// Validate the address
 	if address == "" {

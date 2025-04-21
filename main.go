@@ -1,3 +1,27 @@
+// Package nomad-mcp-server provides a Model Context Protocol (MCP) server for interacting with HashiCorp Nomad.
+// It implements both stdio and SSE transports, allowing for easy integration with various clients.
+//
+// Features:
+// - Job management (list, get, run, stop)
+// - Deployment management
+// - Namespace management
+// - Node management
+// - Allocation management
+// - Variable management
+// - Volume management
+// - ACL management
+//
+// Example usage:
+//
+//	go get github.com/kocierik/nomad-mcp-server@v0.1.0
+//
+//	import "github.com/kocierik/nomad-mcp-server"
+//
+//	// Start the server with stdio transport
+//	go run main.go -transport=stdio
+//
+//	// Start the server with SSE transport
+//	go run main.go -transport=sse -port=8080
 package main
 
 import (
