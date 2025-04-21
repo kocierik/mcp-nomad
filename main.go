@@ -199,6 +199,9 @@ func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *
 	// Register ACL tools
 	tools.RegisterACLTools(s, nomadClient, logger)
 
+	// Register log tools
+	tools.RegisterLogTools(s, nomadClient, logger)
+
 	// Register resources
 	tools.RegisterResources(s, nomadClient, logger)
 }

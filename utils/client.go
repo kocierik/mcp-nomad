@@ -20,9 +20,10 @@ import (
 // It provides methods for managing jobs, deployments, namespaces, nodes, allocations,
 // variables, volumes, and ACL tokens.
 type NomadClient struct {
-	address    string
-	token      string
-	httpClient *http.Client
+	address          string
+	token            string
+	httpClient       *http.Client
+	DefaultTailLines int // Default number of lines to show when tailing logs
 }
 
 // NewNomadClient creates a new Nomad client with the specified address and token.
@@ -47,6 +48,7 @@ func NewNomadClient(address, token string) (*NomadClient, error) {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		DefaultTailLines: 100, // Default to showing last 100 lines
 	}
 
 	// Test the connection
@@ -68,17 +70,33 @@ func (c *NomadClient) GetToken() string {
 	return c.token
 }
 
+// SetDefaultTailLines sets the default number of lines to show when tailing logs
+func (c *NomadClient) SetDefaultTailLines(lines int) error {
+	if lines <= 0 {
+		return fmt.Errorf("number of lines must be positive")
+	}
+	c.DefaultTailLines = lines
+	return nil
+}
+
+// GetDefaultTailLines returns the current default number of lines for log tailing
+func (c *NomadClient) GetDefaultTailLines() int {
+	return c.DefaultTailLines
+}
+
 // makeRequest is a helper function to make HTTP requests to the Nomad API
 func (c *NomadClient) makeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
-	url := fmt.Sprintf("%s/v1/%s", c.address, path)
+	baseURL := fmt.Sprintf("%s/v1/%s", c.address, path)
 
-	// Add query parameters
-	if len(queryParams) > 0 {
-		queryParts := make([]string, 0, len(queryParams))
-		for key, value := range queryParams {
-			queryParts = append(queryParts, fmt.Sprintf("%s=%s", key, value))
-		}
-		url = fmt.Sprintf("%s?%s", url, strings.Join(queryParts, "&"))
+	// Create url.Values for proper query parameter encoding
+	query := url.Values{}
+	for key, value := range queryParams {
+		query.Set(key, value)
+	}
+
+	// Add query parameters to URL
+	if len(query) > 0 {
+		baseURL = fmt.Sprintf("%s?%s", baseURL, query.Encode())
 	}
 
 	var reqBody io.Reader
@@ -90,7 +108,7 @@ func (c *NomadClient) makeRequest(method, path string, queryParams map[string]st
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
-	req, err := http.NewRequest(method, url, reqBody)
+	req, err := http.NewRequest(method, baseURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
@@ -719,7 +737,7 @@ func (c *NomadClient) GetJobVersions(jobID, namespace string) ([]types.Job, erro
 
 // GetAllocation returns the details of an allocation
 func (c *NomadClient) GetAllocation(allocID string) (types.Allocation, error) {
-	path := fmt.Sprintf("/v1/allocation/%s", allocID)
+	path := fmt.Sprintf("allocation/%s", allocID)
 
 	var alloc types.Allocation
 	err := c.get(path, &alloc)
@@ -728,4 +746,56 @@ func (c *NomadClient) GetAllocation(allocID string) (types.Allocation, error) {
 	}
 
 	return alloc, nil
+}
+
+// GetTaskLogs retrieves logs from a specific task in an allocation
+func (c *NomadClient) GetTaskLogs(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+	if allocID == "" {
+		return "", fmt.Errorf("allocation ID is required")
+	}
+	if task == "" {
+		return "", fmt.Errorf("task name is required")
+	}
+
+	// Set default log type if not specified
+	if logType == "" {
+		logType = "stdout"
+	}
+
+	// Build query parameters
+	queryParams := map[string]string{
+		"task":   task,
+		"type":   logType,
+		"follow": fmt.Sprintf("%v", follow),
+		"plain":  "true",
+	}
+
+	// If tail is specified, we want to read from the end
+	if tail > 0 {
+		queryParams["origin"] = "end"
+		// Estimate bytes needed for tail lines (assume average 200 bytes per line)
+		estimatedBytes := tail * 200
+		queryParams["offset"] = fmt.Sprintf("%d", estimatedBytes)
+	} else if offset > 0 {
+		queryParams["offset"] = fmt.Sprintf("%d", offset)
+	}
+
+	// Make request to Nomad API
+	path := fmt.Sprintf("client/fs/logs/%s", allocID)
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to get task logs: %v", err)
+	}
+
+	// If tail was specified, we need to process the response to get the correct number of lines
+	if tail > 0 {
+		lines := strings.Split(string(respBody), "\n")
+		if len(lines) > int(tail) {
+			// Take only the last 'tail' lines
+			lines = lines[len(lines)-int(tail):]
+		}
+		return strings.Join(lines, "\n"), nil
+	}
+
+	return string(respBody), nil
 }
