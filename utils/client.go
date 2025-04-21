@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,15 +23,7 @@ type NomadClient struct {
 }
 
 // NewNomadClient creates a new Nomad client
-func NewNomadClient() (*NomadClient, error) {
-	address := os.Getenv("NOMAD_ADDR")
-	if address == "" {
-		address = "http://localhost:4646"
-	}
-
-	// Get Nomad token from environment if available
-	token := os.Getenv("NOMAD_TOKEN")
-
+func NewNomadClient(address, token string) (*NomadClient, error) {
 	return &NomadClient{
 		address: address,
 		token:   token,

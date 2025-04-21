@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -54,6 +55,7 @@ func validateOrigin(r *http.Request) bool {
 	allowedOrigins := []string{
 		"http://localhost",
 		"http://127.0.0.1",
+		os.Getenv("NOMAD_ADDR"),
 	}
 
 	for _, allowed := range allowedOrigins {
@@ -77,14 +79,17 @@ func originValidationMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	// Define flags
+	transport := flag.String("transport", "stdio", "Transport type (stdio or sse)")
+	port := flag.String("port", "8080", "Port for SSE server")
+	nomadAddr := flag.String("nomad-addr", "http://localhost:4646", "Nomad server address")
+	flag.Parse()
+
+	// Get token from environment
+	token := os.Getenv("NOMAD_TOKEN")
+
 	// Set up logging
 	logger := log.New(os.Stderr, "[NomadMCP] ", log.LstdFlags)
-
-	// Get transport type from environment
-	transport := os.Getenv("MCP_TRANSPORT")
-	if transport == "" {
-		transport = "stdio" // Default to stdio if not set
-	}
 
 	// Create MCP server
 	s := server.NewMCPServer(
@@ -95,8 +100,8 @@ func main() {
 		server.WithRecovery(),
 	)
 
-	// Initialize Nomad client
-	nomadClient, err := utils.NewNomadClient()
+	// Initialize Nomad client with token
+	nomadClient, err := utils.NewNomadClient(*nomadAddr, token)
 	if err != nil {
 		logger.Fatalf("Failed to create Nomad client: %v", err)
 	}
@@ -110,39 +115,29 @@ func main() {
 	// Start the MCP server based on transport type
 	logger.Println("Starting Nomad MCP server...")
 
-	switch transport {
+	switch *transport {
 	case "stdio":
+		logger.Println("Server started on stdio")
 		if err := server.ServeStdio(s, server.WithStdioContextFunc(authFromEnv)); err != nil {
 			logger.Fatalf("Server error: %v", err)
 		}
 	case "sse":
-		// Get SSE port from environment or use default
-		port := os.Getenv("MCP_SSE_PORT")
-		if port == "" {
-			port = "8080"
-		}
-
-		// Get Nomad address from environment or use default
-		nomadAddr := os.Getenv("NOMAD_ADDR")
-		if nomadAddr == "" {
-			nomadAddr = "http://localhost:4646"
-		}
-
 		// Parse the Nomad address to get the host
-		nomadURL, err := url.Parse(nomadAddr)
+		nomadURL, err := url.Parse(*nomadAddr)
 		if err != nil {
-			logger.Fatalf("Invalid NOMAD_ADDR: %v", err)
+			logger.Fatalf("Invalid nomad-addr: %v", err)
 		}
 		logger.Printf("Nomad URL: %s", nomadURL.Hostname())
+
 		// Create SSE server
 		sseServer := server.NewSSEServer(s,
-			server.WithBaseURL(fmt.Sprintf("http://%s:%s", nomadURL.Hostname(), port)),
+			server.WithBaseURL(fmt.Sprintf("http://%s:%s", nomadURL.Hostname(), *port)),
 			server.WithSSEContextFunc(authFromRequest),
 		)
 
 		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:    fmt.Sprintf("%s:%s", nomadURL.Hostname(), port),
+			Addr:    fmt.Sprintf("%s:%s", nomadURL.Hostname(), *port),
 			Handler: originValidationMiddleware(sseServer),
 		}
 
@@ -151,7 +146,7 @@ func main() {
 			logger.Fatalf("Server error: %v", err)
 		}
 	default:
-		logger.Fatalf("Invalid transport type: %s. Must be 'stdio' or 'sse'", transport)
+		logger.Fatalf("Invalid transport type: %s. Must be 'stdio' or 'sse'", *transport)
 	}
 }
 
