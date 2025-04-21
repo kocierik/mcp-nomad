@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 nomad-mcp-server
+dist
+build.sh

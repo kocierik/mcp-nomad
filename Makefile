@@ -1,4 +1,4 @@
-.PHONY: install build test clean
+.PHONY: install build test clean release
 
 # Go parameters
 GOCMD=go
@@ -20,6 +20,7 @@ test:
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
+	rm -rf dist/
 
 install:
 	$(GOINSTALL) ./...
@@ -28,9 +29,12 @@ run:
 	$(GOBUILD) -o $(BINARY_NAME) -v
 	./$(BINARY_NAME) -transport=stdio
 
+release:
+	./scripts/build.sh
+
 # Development tools
 tools:
-	$(GOGET) github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	$(GOGET) github.com/golangci/lint/cmd/golangci-lint@latest
 	$(GOGET) github.com/securego/gosec/v2/cmd/gosec@latest
 
 lint:

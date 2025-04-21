@@ -65,11 +65,9 @@ Add this configuration to your Claude setup:
 {
   "mcpServers": {
     "nomad_mcp": {
-      "command": "go",
+      "command": "/home/erik/Desktop/nomad-mcp-server/nomad-mcp-server",
       "args": [
-        "run",
-        "main.go",
-        "-transport=sse",
+        "-transport=stdio",
         "-port=8080",
         "-nomad-addr=http://localhost:4646"
       ],
