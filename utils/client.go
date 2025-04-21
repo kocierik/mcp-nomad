@@ -24,13 +24,27 @@ type NomadClient struct {
 
 // NewNomadClient creates a new Nomad client
 func NewNomadClient(address, token string) (*NomadClient, error) {
-	return &NomadClient{
+	// Validate the address
+	if address == "" {
+		return nil, fmt.Errorf("nomad address is required")
+	}
+
+	// Create the client
+	client := &NomadClient{
 		address: address,
 		token:   token,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-	}, nil
+	}
+
+	// Test the connection
+	_, err := client.makeRequest("GET", "status/leader", nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Nomad server: %v", err)
+	}
+
+	return client, nil
 }
 
 // SetToken sets the ACL token for the client
