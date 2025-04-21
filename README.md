@@ -13,6 +13,8 @@ A server that provides a set of tools for managing Nomad clusters through the MC
 - Volume management (list, get, create, delete)
 - ACL management (tokens, policies, roles)
 - Access to job templates
+- Real-time monitoring via SSE
+- Secure token-based authentication
 
 ## Development
 
@@ -23,18 +25,61 @@ cd nomad-mcp-server
 
 # install dependencies
 go mod tidy
+```
 
-# Run the MCP inspector
-npx @modelcontextprotocol/inspector go run main.go
+## Usage
+
+### Basic Commands
+
+**Start with custom configuration**:
+```bash
+NOMAD_TOKEN=your-token-here go run main.go \
+  -transport=sse \
+  -port=8080 \
+  -nomad-addr=http://localhost:4646
+```
+
+### Using the MCP Inspector
+
+To inspect and test the server using the MCP Inspector:
+
+```bash
+NOMAD_TOKEN=your-token-here npx @modelcontextprotocol/inspector go run main.go -transport=stdio
 ```
 
 ## Configuration
 
-The server requires the following environment variables:
+### Command Line Flags
+- `-transport`: Transport type ("stdio" or "sse", default: "stdio")
+- `-port`: Port for SSE server (default: "8080")
+- `-nomad-addr`: Nomad server address (default: "http://localhost:4646")
 
-- `NOMAD_ADDR`: The address of the Nomad API server (default: http://localhost:4646)
-- `NOMAD_TOKEN`: The Nomad API token (optional)
+### Environment Variables
+- `NOMAD_TOKEN`: Authentication token for Nomad (required if ACLs are enabled)
 
+## Claude Integration
+
+Add this configuration to your Claude setup:
+
+```json
+{
+  "mcpServers": {
+    "nomad_mcp": {
+      "command": "go",
+      "args": [
+        "run",
+        "main.go",
+        "-transport=sse",
+        "-port=8080",
+        "-nomad-addr=http://localhost:4646"
+      ],
+      "env": {
+        "NOMAD_TOKEN": "${NOMAD_TOKEN}"
+      }
+    }
+  }
+}
+```
 
 ## Tools
 

@@ -55,7 +55,6 @@ func validateOrigin(r *http.Request) bool {
 	allowedOrigins := []string{
 		"http://localhost",
 		"http://127.0.0.1",
-		os.Getenv("NOMAD_ADDR"),
 	}
 
 	for _, allowed := range allowedOrigins {
