@@ -674,3 +674,42 @@ func (c *NomadClient) BootstrapACLToken() (types.ACLToken, error) {
 
 	return token, nil
 }
+
+// GetAllocationLogs retrieves logs for a specific allocation
+func (c *NomadClient) GetAllocationLogs(allocID string) (string, error) {
+	path := fmt.Sprintf("client/fs/logs/%s", allocID)
+	respBody, err := c.makeRequest("GET", path, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(respBody), nil
+}
+
+// GetJobVersions returns the versions of a job
+func (c *NomadClient) GetJobVersions(jobID, namespace string) ([]types.Job, error) {
+	path := fmt.Sprintf("/v1/job/%s/versions", jobID)
+	if namespace != "" {
+		path = fmt.Sprintf("%s?namespace=%s", path, namespace)
+	}
+
+	var versions []types.Job
+	err := c.get(path, &versions)
+	if err != nil {
+		return nil, err
+	}
+
+	return versions, nil
+}
+
+// GetAllocation returns the details of an allocation
+func (c *NomadClient) GetAllocation(allocID string) (types.Allocation, error) {
+	path := fmt.Sprintf("/v1/allocation/%s", allocID)
+
+	var alloc types.Allocation
+	err := c.get(path, &alloc)
+	if err != nil {
+		return types.Allocation{}, err
+	}
+
+	return alloc, nil
+}
