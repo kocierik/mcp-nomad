@@ -6,11 +6,43 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/mark3labs/mcp-go/mcp"
-
 	"github.com/kocierik/nomad-mcp-server/types"
 	"github.com/kocierik/nomad-mcp-server/utils"
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
+
+// RegisterNamespaceTools registers all namespace-related tools
+func RegisterNamespaceTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List namespaces tool
+	listNamespacesTool := mcp.NewTool("list_namespaces",
+		mcp.WithDescription("List all namespaces in Nomad"),
+	)
+	s.AddTool(listNamespacesTool, ListNamespacesHandler(nomadClient, logger))
+
+	// Create namespace tool
+	createNamespaceTool := mcp.NewTool("create_namespace",
+		mcp.WithDescription("Create a new namespace"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("The name of the namespace to create"),
+		),
+		mcp.WithString("description",
+			mcp.Description("Description of the namespace"),
+		),
+	)
+	s.AddTool(createNamespaceTool, CreateNamespaceHandler(nomadClient, logger))
+
+	// Delete namespace tool
+	deleteNamespaceTool := mcp.NewTool("delete_namespace",
+		mcp.WithDescription("Delete a namespace"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("The name of the namespace to delete"),
+		),
+	)
+	s.AddTool(deleteNamespaceTool, DeleteNamespaceHandler(nomadClient, logger))
+}
 
 // ListNamespacesHandler returns a handler for the list_namespaces tool
 func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {

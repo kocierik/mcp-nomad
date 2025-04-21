@@ -9,7 +9,30 @@ import (
 
 	"github.com/kocierik/nomad-mcp-server/utils"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
+
+// RegisterDeploymentTools registers all deployment-related tools
+func RegisterDeploymentTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List deployments tool
+	listDeploymentsTool := mcp.NewTool("list_deployments",
+		mcp.WithDescription("List all deployments"),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace to list deployments from (default: default)"),
+		),
+	)
+	s.AddTool(listDeploymentsTool, ListDeploymentsHandler(nomadClient, logger))
+
+	// Get deployment tool
+	getDeploymentTool := mcp.NewTool("get_deployment",
+		mcp.WithDescription("Get deployment details by ID"),
+		mcp.WithString("deployment_id",
+			mcp.Required(),
+			mcp.Description("The ID of the deployment to retrieve"),
+		),
+	)
+	s.AddTool(getDeploymentTool, GetDeploymentHandler(nomadClient, logger))
+}
 
 // ListDeploymentsHandler returns a handler for the list_deployments tool
 func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {

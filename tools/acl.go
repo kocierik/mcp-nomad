@@ -9,12 +9,145 @@ import (
 	"github.com/kocierik/nomad-mcp-server/types"
 	"github.com/kocierik/nomad-mcp-server/utils"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
-// ListACLTokensHandler returns a handler for listing ACL tokens
-func ListACLTokensHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// RegisterACLTools registers all ACL-related tools
+func RegisterACLTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// ACL Token tools
+	listACLTokensTool := mcp.NewTool("list_acl_tokens",
+		mcp.WithDescription("List all ACL tokens"),
+	)
+	s.AddTool(listACLTokensTool, ListACLTokensHandler(nomadClient, logger))
+
+	getACLTokenTool := mcp.NewTool("get_acl_token",
+		mcp.WithDescription("Get details of a specific ACL token"),
+		mcp.WithString("accessor_id",
+			mcp.Required(),
+			mcp.Description("Accessor ID of the token to get"),
+		),
+	)
+	s.AddTool(getACLTokenTool, GetACLTokenHandler(nomadClient, logger))
+
+	createACLTokenTool := mcp.NewTool("create_acl_token",
+		mcp.WithDescription("Create a new ACL token"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the token"),
+		),
+		mcp.WithString("type",
+			mcp.Required(),
+			mcp.Description("Type of the token (client or management)"),
+			mcp.Enum("client", "management"),
+		),
+		mcp.WithArray("policies",
+			mcp.Description("List of policy names to associate with the token"),
+		),
+		mcp.WithBoolean("global",
+			mcp.Description("Whether the token is global (default: false)"),
+		),
+	)
+	s.AddTool(createACLTokenTool, CreateACLTokenHandler(nomadClient, logger))
+
+	deleteACLTokenTool := mcp.NewTool("delete_acl_token",
+		mcp.WithDescription("Delete an ACL token"),
+		mcp.WithString("accessor_id",
+			mcp.Required(),
+			mcp.Description("Accessor ID of the token to delete"),
+		),
+	)
+	s.AddTool(deleteACLTokenTool, DeleteACLTokenHandler(nomadClient, logger))
+
+	// ACL Policy tools
+	listACLPoliciesTool := mcp.NewTool("list_acl_policies",
+		mcp.WithDescription("List all ACL policies"),
+	)
+	s.AddTool(listACLPoliciesTool, ListACLPoliciesHandler(nomadClient, logger))
+
+	getACLPolicyTool := mcp.NewTool("get_acl_policy",
+		mcp.WithDescription("Get details of a specific ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy to get"),
+		),
+	)
+	s.AddTool(getACLPolicyTool, GetACLPolicyHandler(nomadClient, logger))
+
+	createACLPolicyTool := mcp.NewTool("create_acl_policy",
+		mcp.WithDescription("Create a new ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy"),
+		),
+		mcp.WithString("description",
+			mcp.Description("Description of the policy"),
+		),
+		mcp.WithString("rules",
+			mcp.Required(),
+			mcp.Description("HCL rules for the policy"),
+		),
+	)
+	s.AddTool(createACLPolicyTool, CreateACLPolicyHandler(nomadClient, logger))
+
+	deleteACLPolicyTool := mcp.NewTool("delete_acl_policy",
+		mcp.WithDescription("Delete an ACL policy"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the policy to delete"),
+		),
+	)
+	s.AddTool(deleteACLPolicyTool, DeleteACLPolicyHandler(nomadClient, logger))
+
+	// ACL Role tools
+	listACLRolesTool := mcp.NewTool("list_acl_roles",
+		mcp.WithDescription("List all ACL roles"),
+	)
+	s.AddTool(listACLRolesTool, ListACLRolesHandler(nomadClient, logger))
+
+	getACLRoleTool := mcp.NewTool("get_acl_role",
+		mcp.WithDescription("Get details of a specific ACL role"),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("ID of the role to get"),
+		),
+	)
+	s.AddTool(getACLRoleTool, GetACLRoleHandler(nomadClient, logger))
+
+	createACLRoleTool := mcp.NewTool("create_acl_role",
+		mcp.WithDescription("Create a new ACL role"),
+		mcp.WithString("name",
+			mcp.Required(),
+			mcp.Description("Name of the role"),
+		),
+		mcp.WithString("description",
+			mcp.Description("Description of the role"),
+		),
+		mcp.WithArray("policies",
+			mcp.Description("List of policy names to associate with the role"),
+		),
+	)
+	s.AddTool(createACLRoleTool, CreateACLRoleHandler(nomadClient, logger))
+
+	deleteACLRoleTool := mcp.NewTool("delete_acl_role",
+		mcp.WithDescription("Delete an ACL role"),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("ID of the role to delete"),
+		),
+	)
+	s.AddTool(deleteACLRoleTool, DeleteACLRoleHandler(nomadClient, logger))
+
+	// Bootstrap ACL token tool
+	bootstrapACLTokenTool := mcp.NewTool("bootstrap_acl_token",
+		mcp.WithDescription("Bootstrap the ACL system and get the initial management token"),
+	)
+	s.AddTool(bootstrapACLTokenTool, BootstrapACLTokenHandler(nomadClient, logger))
+}
+
+// ListACLTokensHandler handles the list_acl_tokens tool request
+func ListACLTokensHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		tokens, err := client.ListACLTokens()
+		tokens, err := nomadClient.ListACLTokens()
 		if err != nil {
 			logger.Printf("Error listing ACL tokens: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list ACL tokens", err), nil
@@ -29,15 +162,15 @@ func ListACLTokensHandler(client *utils.NomadClient, logger *log.Logger) func(co
 	}
 }
 
-// GetACLTokenHandler returns a handler for getting a specific ACL token
-func GetACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// GetACLTokenHandler handles the get_acl_token tool request
+func GetACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		accessorID, ok := request.Params.Arguments["accessor_id"].(string)
 		if !ok || accessorID == "" {
 			return mcp.NewToolResultError("accessor_id is required"), nil
 		}
 
-		token, err := client.GetACLToken(accessorID)
+		token, err := nomadClient.GetACLToken(accessorID)
 		if err != nil {
 			logger.Printf("Error getting ACL token: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get ACL token", err), nil
@@ -52,8 +185,8 @@ func GetACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 	}
 }
 
-// CreateACLTokenHandler returns a handler for creating a new ACL token
-func CreateACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// CreateACLTokenHandler handles the create_acl_token tool request
+func CreateACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
@@ -86,7 +219,7 @@ func CreateACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(c
 			Global:   global,
 		}
 
-		createdToken, err := client.CreateACLToken(token)
+		createdToken, err := nomadClient.CreateACLToken(token)
 		if err != nil {
 			logger.Printf("Error creating ACL token: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create ACL token", err), nil
@@ -101,15 +234,15 @@ func CreateACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(c
 	}
 }
 
-// DeleteACLTokenHandler returns a handler for deleting an ACL token
-func DeleteACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// DeleteACLTokenHandler handles the delete_acl_token tool request
+func DeleteACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		accessorID, ok := request.Params.Arguments["accessor_id"].(string)
 		if !ok || accessorID == "" {
 			return mcp.NewToolResultError("accessor_id is required"), nil
 		}
 
-		err := client.DeleteACLToken(accessorID)
+		err := nomadClient.DeleteACLToken(accessorID)
 		if err != nil {
 			logger.Printf("Error deleting ACL token: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete ACL token", err), nil
@@ -119,10 +252,10 @@ func DeleteACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(c
 	}
 }
 
-// ListACLPoliciesHandler returns a handler for listing ACL policies
-func ListACLPoliciesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// ListACLPoliciesHandler handles the list_acl_policies tool request
+func ListACLPoliciesHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		policies, err := client.ListACLPolicies()
+		policies, err := nomadClient.ListACLPolicies()
 		if err != nil {
 			logger.Printf("Error listing ACL policies: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list ACL policies", err), nil
@@ -137,15 +270,15 @@ func ListACLPoliciesHandler(client *utils.NomadClient, logger *log.Logger) func(
 	}
 }
 
-// GetACLPolicyHandler returns a handler for getting a specific ACL policy
-func GetACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// GetACLPolicyHandler handles the get_acl_policy tool request
+func GetACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		policy, err := client.GetACLPolicy(name)
+		policy, err := nomadClient.GetACLPolicy(name)
 		if err != nil {
 			logger.Printf("Error getting ACL policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get ACL policy", err), nil
@@ -160,8 +293,8 @@ func GetACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(con
 	}
 }
 
-// CreateACLPolicyHandler returns a handler for creating a new ACL policy
-func CreateACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// CreateACLPolicyHandler handles the create_acl_policy tool request
+func CreateACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
@@ -184,7 +317,7 @@ func CreateACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(
 			Rules:       rules,
 		}
 
-		err := client.CreateACLPolicy(policy)
+		err := nomadClient.CreateACLPolicy(policy)
 		if err != nil {
 			logger.Printf("Error creating ACL policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create ACL policy", err), nil
@@ -199,15 +332,15 @@ func CreateACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(
 	}
 }
 
-// DeleteACLPolicyHandler returns a handler for deleting an ACL policy
-func DeleteACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// DeleteACLPolicyHandler handles the delete_acl_policy tool request
+func DeleteACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		err := client.DeleteACLPolicy(name)
+		err := nomadClient.DeleteACLPolicy(name)
 		if err != nil {
 			logger.Printf("Error deleting ACL policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete ACL policy", err), nil
@@ -217,10 +350,10 @@ func DeleteACLPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(
 	}
 }
 
-// ListACLRolesHandler returns a handler for listing ACL roles
-func ListACLRolesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// ListACLRolesHandler handles the list_acl_roles tool request
+func ListACLRolesHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		roles, err := client.ListACLRoles()
+		roles, err := nomadClient.ListACLRoles()
 		if err != nil {
 			logger.Printf("Error listing ACL roles: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list ACL roles", err), nil
@@ -235,15 +368,15 @@ func ListACLRolesHandler(client *utils.NomadClient, logger *log.Logger) func(con
 	}
 }
 
-// GetACLRoleHandler returns a handler for getting a specific ACL role
-func GetACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// GetACLRoleHandler handles the get_acl_role tool request
+func GetACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id, ok := request.Params.Arguments["id"].(string)
 		if !ok || id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}
 
-		role, err := client.GetACLRole(id)
+		role, err := nomadClient.GetACLRole(id)
 		if err != nil {
 			logger.Printf("Error getting ACL role: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get ACL role", err), nil
@@ -258,8 +391,8 @@ func GetACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(conte
 	}
 }
 
-// CreateACLRoleHandler returns a handler for creating a new ACL role
-func CreateACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// CreateACLRoleHandler handles the create_acl_role tool request
+func CreateACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
@@ -286,7 +419,7 @@ func CreateACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(co
 			Policies:    policies,
 		}
 
-		err := client.CreateACLRole(role)
+		err := nomadClient.CreateACLRole(role)
 		if err != nil {
 			logger.Printf("Error creating ACL role: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create ACL role", err), nil
@@ -301,15 +434,15 @@ func CreateACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(co
 	}
 }
 
-// DeleteACLRoleHandler returns a handler for deleting an ACL role
-func DeleteACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// DeleteACLRoleHandler handles the delete_acl_role tool request
+func DeleteACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		id, ok := request.Params.Arguments["id"].(string)
 		if !ok || id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}
 
-		err := client.DeleteACLRole(id)
+		err := nomadClient.DeleteACLRole(id)
 		if err != nil {
 			logger.Printf("Error deleting ACL role: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete ACL role", err), nil
@@ -319,17 +452,17 @@ func DeleteACLRoleHandler(client *utils.NomadClient, logger *log.Logger) func(co
 	}
 }
 
-// BootstrapACLTokenHandler returns a handler for bootstrapping the ACL system
-func BootstrapACLTokenHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// BootstrapACLTokenHandler handles the bootstrap_acl_token tool request
+func BootstrapACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		token, err := client.BootstrapACLToken()
+		token, err := nomadClient.BootstrapACLToken()
 		if err != nil {
 			logger.Printf("Error bootstrapping ACL token: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to bootstrap ACL token", err), nil
 		}
 
 		// Save the token in the client
-		client.SetToken(token.SecretID)
+		nomadClient.SetToken(token.SecretID)
 
 		tokenJSON, err := json.MarshalIndent(token, "", "  ")
 		if err != nil {

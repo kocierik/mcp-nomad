@@ -8,12 +8,50 @@ import (
 
 	"github.com/kocierik/nomad-mcp-server/utils"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
+
+// RegisterVolumeTools registers all volume-related tools
+func RegisterVolumeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List volumes tool
+	listVolumesTool := mcp.NewTool("list_volumes",
+		mcp.WithDescription("List all volumes in a namespace"),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace to list volumes from (optional)"),
+		),
+	)
+	s.AddTool(listVolumesTool, ListVolumesHandler(nomadClient, logger))
+
+	// Get volume tool
+	getVolumeTool := mcp.NewTool("get_volume",
+		mcp.WithDescription("Get details of a specific volume"),
+		mcp.WithString("volume_id",
+			mcp.Required(),
+			mcp.Description("ID of the volume to get"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace of the volume (optional)"),
+		),
+	)
+	s.AddTool(getVolumeTool, GetVolumeHandler(nomadClient, logger))
+
+	// Delete volume tool
+	deleteVolumeTool := mcp.NewTool("delete_volume",
+		mcp.WithDescription("Delete a volume"),
+		mcp.WithString("volume_id",
+			mcp.Required(),
+			mcp.Description("ID of the volume to delete"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("Namespace of the volume (optional)"),
+		),
+	)
+	s.AddTool(deleteVolumeTool, DeleteVolumeHandler(nomadClient, logger))
+}
 
 // ListVolumesHandler returns a handler for listing volumes
 func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-
 		// Get optional parameters
 		nodeID, _ := request.Params.Arguments["node_id"].(string)
 		pluginID, _ := request.Params.Arguments["plugin_id"].(string)

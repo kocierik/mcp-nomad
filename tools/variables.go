@@ -7,7 +7,54 @@ import (
 
 	"github.com/kocierik/nomad-mcp-server/utils"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
+
+// RegisterVariableTools registers all variable-related tools
+func RegisterVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+	// List variables tool
+	listVariablesTool := mcp.NewTool("list_variables",
+		mcp.WithDescription("List all variables in Nomad"),
+		mcp.WithString("prefix",
+			mcp.Description("Optional prefix to filter variables"),
+		),
+	)
+	s.AddTool(listVariablesTool, ListVariablesHandler(nomadClient, logger))
+
+	// Get variable tool
+	getVariableTool := mcp.NewTool("get_variable",
+		mcp.WithDescription("Get variable details by path"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path of the variable to retrieve"),
+		),
+	)
+	s.AddTool(getVariableTool, GetVariableHandler(nomadClient, logger))
+
+	// Create variable tool
+	createVariableTool := mcp.NewTool("create_variable",
+		mcp.WithDescription("Create or update a variable"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path where to create the variable"),
+		),
+		mcp.WithObject("items",
+			mcp.Required(),
+			mcp.Description("The key-value pairs to store in the variable"),
+		),
+	)
+	s.AddTool(createVariableTool, CreateVariableHandler(nomadClient, logger))
+
+	// Delete variable tool
+	deleteVariableTool := mcp.NewTool("delete_variable",
+		mcp.WithDescription("Delete a variable"),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("The path of the variable to delete"),
+		),
+	)
+	s.AddTool(deleteVariableTool, DeleteVariableHandler(nomadClient, logger))
+}
 
 // ListVariablesHandler returns a handler for listing variables
 func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
