@@ -11,8 +11,6 @@
   <a href="https://modelcontextprotocol.io">About MCP ↗</a>
 </p>
 
-A server that provides a set of tools for managing Nomad clusters through the MCP (Model Control Protocol) interface.
-
 ## Demo
 
 https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
