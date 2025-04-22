@@ -28,4 +28,5 @@ mcp-nomad
 dist
 build.sh
 **/packages/bin/mcp***
-
+update.sh
+tag.sh

@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 BINARY_NAME="mcp-nomad-go"
 
 # Check if Go is installed
@@ -17,32 +17,50 @@ echo "Cleaning dist directory..."
 rm -rf dist
 mkdir -p dist
 
-# Build for Darwin (macOS)
-echo "Building for darwin/amd64..."
-mkdir -p "dist/${BINARY_NAME}_darwin_amd64_v1"
-GOOS=darwin GOARCH=amd64 go build -o "dist/${BINARY_NAME}_darwin_amd64_v1/${BINARY_NAME}" .
+# Build targets
+declare -A TARGETS=(
+  ["darwin_amd64"]="1"
+  ["darwin_arm64"]="8.0"
+  ["linux_amd64"]="1"
+  ["linux_arm64"]="8.0"
+  ["windows_amd64"]="1"
+  ["windows_arm64"]="8.0"
+)
 
-echo "Building for darwin/arm64..."
-mkdir -p "dist/${BINARY_NAME}_darwin_arm64_v8.0"
-GOOS=darwin GOARCH=arm64 go build -o "dist/${BINARY_NAME}_darwin_arm64_v8.0/${BINARY_NAME}" .
+# Build binaries
+echo "Building binaries..."
+for target in "${!TARGETS[@]}"; do
+    GOOS="${target%%_*}"
+    GOARCH="${target##*_}"
+    VERSION_SUFFIX="${TARGETS[$target]}"
+    OUTPUT_DIR="dist/${BINARY_NAME}_${GOOS}_${GOARCH}_v${VERSION_SUFFIX}"
 
-# Build for Linux
-echo "Building for linux/amd64..."
-mkdir -p "dist/${BINARY_NAME}_linux_amd64_v1"
-GOOS=linux GOARCH=amd64 go build -o "dist/${BINARY_NAME}_linux_amd64_v1/${BINARY_NAME}" .
+    echo "Building for $GOOS/$GOARCH..."
+    mkdir -p "$OUTPUT_DIR"
+    if [[ "$GOOS" == "windows" ]]; then
+        go build -o "${OUTPUT_DIR}/${BINARY_NAME}.exe" .
+    else
+        go build -o "${OUTPUT_DIR}/${BINARY_NAME}" .
+    fi
+done
 
-echo "Building for linux/arm64..."
-mkdir -p "dist/${BINARY_NAME}_linux_arm64_v8.0"
-GOOS=linux GOARCH=arm64 go build -o "dist/${BINARY_NAME}_linux_arm64_v8.0/${BINARY_NAME}" .
+# Compress built binaries
+echo "Compressing binaries..."
+cd dist || exit 1
 
-# Build for Windows
-echo "Building for windows/amd64..."
-mkdir -p "dist/${BINARY_NAME}_windows_amd64_v1"
-GOOS=windows GOARCH=amd64 go build -o "dist/${BINARY_NAME}_windows_amd64_v1/${BINARY_NAME}.exe" .
+for dir in ${BINARY_NAME}_*; do
+    if [[ "$dir" == *"windows"* ]]; then
+        echo "Zipping $dir..."
+        zip -r "${dir}.zip" "$dir"
+    else
+        echo "Creating tar.gz for $dir..."
+        tar czf "${dir}.tar.gz" "$dir"
+    fi
+done
 
-echo "Building for windows/arm64..."
-mkdir -p "dist/${BINARY_NAME}_windows_arm64_v8.0"
-GOOS=windows GOARCH=arm64 go build -o "dist/${BINARY_NAME}_windows_arm64_v8.0/${BINARY_NAME}.exe" .
+# Show contents
+echo "Final contents of dist/:"
+ls -la | cat
 
-echo "All builds completed successfully!"
-echo "Binaries are available in the dist/ directory" 
+echo "✅ All builds and compressions completed successfully!"
+

@@ -1,17 +1,17 @@
 {
   "name": "@kocierik/mcp-nomad",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "main": "./index.js",
   "bin": {
-    "mcp-nomad": "bin/cli" 
+    "mcp-nomad": "bin/cli"
   },
   "optionalDependencies": {
-    "@kocierik/mcp-nomad-server-darwin-x64": "0.1.2",
-    "@kocierik/mcp-nomad-server-darwin-arm64": "0.1.2",
-    "@kocierik/mcp-nomad-server-linux-x64": "0.1.2",
-    "@kocierik/mcp-nomad-server-linux-arm64": "0.1.2",
-    "@kocierik/mcp-nomad-server-win32-x64": "0.1.2",
-    "@kocierik/mcp-nomad-server-win32-arm64": "0.1.2"
+    "@kocierik/mcp-nomad-linux-x64": "0.1.4",
+    "@kocierik/mcp-nomad-darwin-x64": "0.1.4", 
+    "@kocierik/mcp-nomad-darwin-arm64": "0.1.4",
+    "@kocierik/mcp-nomad-linux-arm64": "0.1.4",
+    "@kocierik/mcp-nomad-win32-x64": "0.1.4",
+    "@kocierik/mcp-nomad-win32-arm64": "0.1.4"
   },
   "repository": {
     "type": "git",
@@ -27,5 +27,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad"
+  "description": "Nomad MCP Server"   
 }

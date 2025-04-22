@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-linux-x64",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "os": [
     "linux",
     "freebsd"
@@ -21,5 +21,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad - Linux x64 build"
+  "description": "Nomad MCP Server - Linux x64 build"
 }

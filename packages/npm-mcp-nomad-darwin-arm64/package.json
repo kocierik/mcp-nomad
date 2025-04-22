@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-darwin-arm64",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "os": [
     "darwin"
   ],
@@ -12,6 +12,7 @@
     "url": "git+https://github.com/kocierik/mcp-nomad.git"
   },
   "keywords": [
+    "Nomad",
     "MCP"
   ],
   "license": "MIT",
@@ -19,5 +20,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad - Darwin ARM64 build"
+  "description": "Nomad MCP Server - Darwin ARM64 build"
 }

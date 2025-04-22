@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-darwin-x64",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "os": [
     "darwin"
   ],
@@ -19,5 +19,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad - Darwin x64 build"
+  "description": "Nomad MCP Server - Darwin x64 build"
 }

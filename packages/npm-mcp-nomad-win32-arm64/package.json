@@ -1,18 +1,17 @@
 {
   "name": "@kocierik/mcp-nomad-win32-arm64",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "os": [
     "win32"
   ],
   "cpu": [
     "arm64"
-  ],  
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kocierik/mcp-nomad.git"
   },
   "keywords": [
-    "Nomad",
     "MCP"
   ],
   "license": "MIT",
@@ -20,5 +19,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad - Windows ARM64 build"
+  "description": "MCP Nomad Server - Windows ARM64 build"
 }

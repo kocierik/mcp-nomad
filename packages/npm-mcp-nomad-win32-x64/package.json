@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-win32-x64",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "os": [
     "win32"
   ],
@@ -20,5 +20,5 @@
     "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
   "homepage": "https://github.com/kocierik/mcp-nomad#readme",
-  "description": "MCP Nomad - Windows x64 build"
+  "description": "Nomad MCP Server - Windows x64 build"
 }
