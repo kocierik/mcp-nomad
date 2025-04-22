@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/kocierik/nomad-mcp-server/utils"
+	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

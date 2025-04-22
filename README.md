@@ -26,8 +26,8 @@ https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
 
 ```bash
 # Clone the repository
-git clone https://github.com/kocierik/nomad-mcp-server.git
-cd nomad-mcp-server
+git clone https://github.com/kocierik/mcp-nomad.git  
+cd mcp-nomad
 
 # install dependencies
 go mod tidy
@@ -71,7 +71,7 @@ Add this configuration to your Claude setup:
 {
   "mcpServers": {
     "nomad_mcp": {
-      "command": "/home/erik/Desktop/nomad-mcp-server/nomad-mcp-server",
+      "command": "/home/erik/Desktop/mcp-nomad/mcp-nomad",
       "args": [
         "-transport=stdio",
         "-port=8080",

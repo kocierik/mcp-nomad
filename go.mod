@@ -1,8 +1,8 @@
-module github.com/kocierik/nomad-mcp-server
+module github.com/kocierik/mcp-nomad
 
 go 1.24.2
 
-require github.com/mark3labs/mcp-go v0.22.0
+require github.com/mark3labs/mcp-go v0.23.0
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

@@ -1,4 +1,4 @@
-// Package nomad-mcp-server provides a Model Context Protocol (MCP) server for interacting with HashiCorp Nomad.
+// Package mcp-nomad provides a Model Context Protocol (MCP) server for interacting with HashiCorp Nomad.
 // It implements both stdio and SSE transports, allowing for easy integration with various clients.
 //
 // Features:
@@ -13,9 +13,9 @@
 //
 // Example usage:
 //
-//	go get github.com/kocierik/nomad-mcp-server@v0.1.0
+//	go get github.com/kocierik/mcp-nomad@v0.1.0
 //
-//	import "github.com/kocierik/nomad-mcp-server"
+//	import "github.com/kocierik/mcp-nomad"
 //
 //	// Start the server with stdio transport
 //	go run main.go -transport=stdio
@@ -34,9 +34,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kocierik/nomad-mcp-server/prompts"
-	"github.com/kocierik/nomad-mcp-server/tools"
-	"github.com/kocierik/nomad-mcp-server/utils"
+	"github.com/kocierik/mcp-nomad/prompts"
+	"github.com/kocierik/mcp-nomad/tools"
+	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/server"
 )
 

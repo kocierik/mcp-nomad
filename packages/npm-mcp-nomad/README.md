@@ -16,8 +16,8 @@ You have two options at the moment - use pre-built binaries or build it from sou
 
 ```bash
 # Clone the repository
-git clone https://github.com/kocierik/nomad-mcp-server.git
-cd nomad-mcp-server
+git clone https://github.com/kocierik/mcp-nomad.git
+cd mcp-nomad
 
 # install dependencies
 go mod tidy
@@ -35,7 +35,7 @@ Once built, you can proceed to add configuration to `claude_desktop_config.json`
 {
     "mcpServers": {
         "nomad_mcp": {
-            "command": "/path/to/nomad-mcp-server",
+            "command": "/path/to/mcp-nomad",
             "args": [
                 "-transport=stdio",
                 "-nomad-addr=http://localhost:4646"

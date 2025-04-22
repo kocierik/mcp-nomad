@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kocierik/nomad-mcp-server/types"
+	"github.com/kocierik/mcp-nomad/types"
 )
 
 // NomadClient handles interactions with the Nomad API.

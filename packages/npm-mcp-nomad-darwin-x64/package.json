@@ -1,6 +1,6 @@
 {
-  "name": "@kocierik/nomad-mcp-server-darwin-x64",
-  "version": "0.1.0",
+  "name": "@kocierik/mcp-nomad-darwin-x64",
+  "version": "0.1.2",
   "os": [
     "darwin"
   ],
@@ -9,15 +9,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kocierik/nomad-mcp-server.git"
+    "url": "git+https://github.com/kocierik/mcp-nomad.git"
   },
   "keywords": [
     "MCP"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kocierik/nomad-mcp-server/issues"
+    "url": "https://github.com/kocierik/mcp-nomad/issues"
   },
-  "homepage": "https://github.com/kocierik/nomad-mcp-server#readme",
-  "description": "Nomad MCP Server - Darwin x64 build"
+  "homepage": "https://github.com/kocierik/mcp-nomad#readme",
+  "description": "MCP Nomad - Darwin x64 build"
 }
