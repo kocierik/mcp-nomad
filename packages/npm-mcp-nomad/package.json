@@ -1,0 +1,31 @@
+{
+  "name": "@kocierik/nomad-mcp-server",
+  "version": "0.1.0",
+  "main": "./index.js",
+  "bin": {
+    "nomad-mcp-server": "bin/cli" 
+  },
+  "optionalDependencies": {
+    "@kocierik/nomad-mcp-server-darwin-x64": "0.1.0",
+    "@kocierik/nomad-mcp-server-darwin-arm64": "0.1.0",
+    "@kocierik/nomad-mcp-server-linux-x64": "0.1.0",
+    "@kocierik/nomad-mcp-server-linux-arm64": "0.1.0",
+    "@kocierik/nomad-mcp-server-win32-x64": "0.1.0",
+    "@kocierik/nomad-mcp-server-win32-arm64": "0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kocierik/nomad-mcp-server.git"
+  },
+  "keywords": [
+    "MCP",
+    "Nomad",
+    "HashiCorp"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kocierik/nomad-mcp-server/issues"
+  },
+  "homepage": "https://github.com/kocierik/nomad-mcp-server#readme",
+  "description": "Nomad MCP Server - Windows ARM64 build"
+}

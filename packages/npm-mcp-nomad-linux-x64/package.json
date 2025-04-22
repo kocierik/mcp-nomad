@@ -1,0 +1,25 @@
+{
+  "name": "@kocierik/nomad-mcp-server-linux-x64",
+  "version": "0.1.0",
+  "os": [
+    "linux",
+    "freebsd"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kocierik/nomad-mcp-server.git"
+  },
+  "keywords": [
+    "Nomad",
+    "MCP"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kocierik/nomad-mcp-server/issues"
+  },
+  "homepage": "https://github.com/kocierik/nomad-mcp-server#readme",
+  "description": "Nomad MCP Server - Linux x64 build"
+}
