@@ -1,4 +1,15 @@
-# Nomad MCP Server
+<h4 align="center">Golang-based MCP server connecting to Nomad</h4>
+<h1 align="center">
+  <img src="https://github.com/user-attachments/assets/77e291ef-11ae-4b12-94b1-3409f4356ceb" alt="nomad-futuristic-logo" style="width:200px;"/>
+  <br/>
+   MCP Nomad Go
+</h1>
+<p align="center">
+  <a href="#features">Features</a> ⚙
+  <a href="#using-the-mcp-inspector">Browse With Inspector</a> ⚙ 
+  <a href="#claude-integration">Use With Claude</a> ⚙
+  <a href="https://modelcontextprotocol.io">About MCP ↗</a>
+</p>
 
 A server that provides a set of tools for managing Nomad clusters through the MCP (Model Control Protocol) interface.
 
