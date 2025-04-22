@@ -27,3 +27,4 @@ go.work.sum
 mcp-nomad 
 dist
 build.sh
+bin
