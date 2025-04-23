@@ -17,7 +17,7 @@
 //
 //	import "github.com/kocierik/mcp-nomad"
 //
-//	// Start the server with stdio transport
+//	// Start the server with stdio transport [default]
 //	go run main.go -transport=stdio
 //
 //	// Start the server with SSE transport
@@ -79,6 +79,7 @@ func validateOrigin(r *http.Request) bool {
 	allowedOrigins := []string{
 		"http://localhost",
 		"http://127.0.0.1",
+		os.Getenv("NOMAD_ADDR"),
 	}
 
 	for _, allowed := range allowedOrigins {
@@ -105,8 +106,13 @@ func main() {
 	// Define flags
 	transport := flag.String("transport", "stdio", "Transport type (stdio or sse)")
 	port := flag.String("port", "8080", "Port for SSE server")
-	nomadAddr := flag.String("nomad-addr", "http://localhost:4646", "Nomad server address")
+	// nomadAddr := flag.String("nomad-addr", "http://localhost:4646", "Nomad server address")
 	flag.Parse()
+
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	if nomadAddr == "" {
+		nomadAddr = "http://localhost:4646"
+	}
 
 	// Get token from environment
 	token := os.Getenv("NOMAD_TOKEN")
@@ -117,14 +123,14 @@ func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
 		"Nomad MCP",
-		"1.0.0",
+		"0.1.4",
 		server.WithResourceCapabilities(true, true),
 		server.WithLogging(),
 		server.WithRecovery(),
 	)
 
 	// Initialize Nomad client with token
-	nomadClient, err := utils.NewNomadClient(*nomadAddr, token)
+	nomadClient, err := utils.NewNomadClient(nomadAddr, token)
 	if err != nil {
 		logger.Fatalf("Failed to create Nomad client: %v", err)
 	}
@@ -146,7 +152,7 @@ func main() {
 		}
 	case "sse":
 		// Parse the Nomad address to get the host
-		nomadURL, err := url.Parse(*nomadAddr)
+		nomadURL, err := url.Parse(nomadAddr)
 		if err != nil {
 			logger.Fatalf("Invalid nomad-addr: %v", err)
 		}
