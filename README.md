@@ -1,374 +1,180 @@
+
 <h4 align="center">Golang-based MCP server connecting to Nomad</h4>
+
 <h1 align="center">
   <img src="https://github.com/user-attachments/assets/77e291ef-11ae-4b12-94b1-3409f4356ceb" alt="nomad-futuristic-logo" style="width:200px;"/>
-  <br/>
+   <br/>
    MCP Nomad Go
 </h1>
+
 <p align="center">
   <a href="#features">Features</a> ⚙
-  <a href="#using-the-mcp-inspector">Browse With Inspector</a> ⚙ 
-  <a href="#claude-integration">Use With Claude</a> ⚙
+  <a href="#browse-with-inspector">Browse With Inspector</a> ⚙
+  <a href="#use-with-claude">Use With Claude</a> ⚙
+  <a href="https://github.com/kocierik/mcp-nomad/blob/main/CONTRIBUTING.md">Contributing ↗</a> ⚙
   <a href="https://modelcontextprotocol.io">About MCP ↗</a>
 </p>
 
-## Demo
+<p align="center">
+  <a href="https://github.com/kocierik/mcp-nomad/actions/workflows/test.yaml"><img src="https://github.com/kocierik/mcp-nomad/actions/workflows/test.yaml/badge.svg"></a>
+  <a href="https://goreportcard.com/report/github.com/kocierik/mcp-nomad"><img src="https://goreportcard.com/badge/github.com/kocierik/mcp-nomad" alt="Go Report"></a>
+  <a href="https://github.com/kocierik/mcp-nomad/releases/latest"><img src="https://img.shields.io/github/v/release/kocierik/mcp-nomad?logo=github&color=22ff22" alt="latest release badge"></a>
+  <a href="https://github.com/kocierik/mcp-nomad/blob/main/LICENSE"><img src="https://img.shields.io/github/license/kocierik/mcp-nomad" alt="license badge"></a>
+</p>
+
+## Features
+
+MCP 💬 prompt 🗂️ resource 🤖 tool 
+
+- 🗂️🤖 List Nomad jobs
+- 💬🤖 List Nomad nodes
+- 🤖 Get Nomad job status
+- 🤖 Get Nomad allocation logs
+- 🤖 Restart a Nomad job
+- 🤖 List deployments
+- 🤖 View allocation info
+- 💬 Get node metrics
+
+## Browse With Inspector
+
+To use the latest published version with Inspector:
+
+```bash
+npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
+```
+
+
+### Environment Variables
+
+- `NOMAD_ADDR`: Nomad HTTP API address (e.g. http://localhost:4646)
+- `NOMAD_TOKEN`: Nomad ACL token (optional)
+ 
+
+
+## Use With Claude
 
 https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
 
 
+### Installation Options
 
-## Features
+|              | <a href="#using-smithery">Smithery</a> | <a href="#using-mcp-get">mcp-get</a> | <a href="#prebuilt-from-npm">Pre-built NPM</a> | <a href="#from-github-releases">Pre-built in Github</a> | <a href="#building-from-source">From sources</a> | <a href="#using-docker">Using Docker</a> |
+| ------------ | -------------------------------------- | ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| Claude Setup | Auto                                   | Auto                                 | Manual                                         | Manual                                                  | Manual                                           | Manual                                   |
+| Prerequisite | Node.js                                | Node.js                              | Node.js                                        | None                                                    | Golang                                           | Docker                                   |
 
-- Job management (list, get, run, stop, restart, scale)
-- Deployment management (list, get)
-- Namespace management (list, create, delete)
-- Node management (list, get, drain)
-- Allocation management (list, get, stop)
-- Variable management (list, get, create, delete)
-- Volume management (list, get, create, delete)
-- ACL management (tokens, policies, roles)
-- Access to job templates
-- Real-time monitoring via SSE
-- Secure token-based authentication
-
-## Development
+### Using Smithery
 
 ```bash
-# Clone the repository
-git clone https://github.com/kocierik/mcp-nomad.git  
-cd mcp-nomad
-
-# install dependencies
-go mod tidy
+npx -y @smithery/cli install @kocierik/mcp-nomad --client claude
 ```
 
-## Usage
-
-### Basic Commands
-
-**Start with custom configuration**:
-```bash
-NOMAD_TOKEN=your-token-here go run main.go \
-  -transport=sse \
-  -port=8080 \
-  -nomad-addr=http://localhost:4646
-```
-
-### Using the MCP Inspector
-
-To inspect and test the server using the MCP Inspector:
+### Using mcp-get
 
 ```bash
-NOMAD_TOKEN=your-token-here npx @modelcontextprotocol/inspector go run main.go -transport=stdio
+npx @michaellatman/mcp-get@latest install @kocierik/mcp-nomad
 ```
 
-## Configuration
+### Prebuilt from npm
 
-### Command Line Flags
-- `-transport`: Transport type ("stdio" or "sse", default: "stdio")
-- `-port`: Port for SSE server (default: "8080")
-- `-nomad-addr`: Nomad server address (default: "http://localhost:4646")
+```bash
+npm install -g @kocierik/mcp-nomad
+```
 
-### Environment Variables
-- `NOMAD_TOKEN`: Authentication token for Nomad (required if ACLs are enabled)
-
-## Claude Integration
-
-Add this configuration to your Claude setup:
+Update your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "nomad_mcp": {
-      "command": "/home/erik/Desktop/mcp-nomad/mcp-nomad",
-      "args": [
-        "-transport=stdio",
-        "-port=8080",
-        "-nomad-addr=http://localhost:4646"
-      ],
+    "mcp_nomad": {
+      "command": "mcp-nomad",
+      "args": [],
       "env": {
-        "NOMAD_TOKEN": "${NOMAD_TOKEN}"
+        "NOMAD_TOKEN": "${NOMAD_TOKEN}",
+        "NOMAD_ADDR": "${NOMAD_ADDR}"
       }
     }
   }
 }
 ```
 
-## Tools
-
-### Job Tools
-
-#### list_jobs
-Lists all jobs in a namespace.
-
-Parameters:
-- `namespace` (string, optional): Namespace to list jobs from
-- `status` (string, optional): Filter jobs by status
-
-#### get_job
-Gets details of a specific job.
-
-Parameters:
-- `job_id` (string, required): ID of the job to get
-- `namespace` (string, optional): Namespace of the job
-
-#### run_job
-Runs a new job.
-
-Parameters:
-- `job_spec` (string, required): Job specification in HCL or JSON format
-- `namespace` (string, optional): Namespace to run the job in
-- `detach` (boolean, optional): Whether to detach from the job
-
-
-#### stop_job
-Stops a job.
-
-Parameters:
-- `job_id` (string, required): ID of the job to stop
-- `namespace` (string, optional): Namespace of the job
-- `purge` (boolean, optional): Whether to purge the job
-
-#### restart_job
-Restarts a job.
-
-Parameters:
-- `job_id` (string, required): ID of the job to restart
-- `namespace` (string, optional): Namespace of the job
-
-#### scale_job
-Scales a job's task group.
-
-Parameters:
-- `job_id` (string, required): ID of the job to scale
-- `group` (string, required): Name of the task group to scale
-- `count` (integer, required): Desired count for the task group
-- `namespace` (string, optional): Namespace of the job
-
-#### get_job_allocations
-Gets allocations for a job.
-
-Parameters:
-- `job_id` (string, required): ID of the job
-- `namespace` (string, optional): Namespace of the job
-
-#### get_job_evaluations
-Gets evaluations for a job.
-
-Parameters:
-- `job_id` (string, required): ID of the job
-- `namespace` (string, optional): Namespace of the job
-
-### Deployment Tools
-
-#### list_deployments
-Lists all deployments.
-
-Parameters:
-- `namespace` (string, optional): Namespace to list deployments from
-
-#### get_deployment
-Gets details of a specific deployment.
-
-Parameters:
-- `deployment_id` (string, required): ID of the deployment to get
-
-### Namespace Tools
-
-#### list_namespaces
-Lists all namespaces.
-
-#### create_namespace
-Creates a new namespace.
-
-Parameters:
-- `namespace_spec` (string, required): JSON specification of the namespace to create
-
-#### delete_namespace
-Deletes a namespace.
-
-Parameters:
-- `name` (string, required): Name of the namespace to delete
-
-### Node Tools
-
-#### list_nodes
-Lists all nodes in the cluster.
-
-Parameters:
-- `status` (string, optional): Filter nodes by status
-
-#### get_node
-Gets details of a specific node.
-
-Parameters:
-- `node_id` (string, required): ID of the node to get
-
-#### drain_node
-Drains a node.
-
-Parameters:
-- `node_id` (string, required): ID of the node to drain
-- `enable` (boolean, required): Whether to enable or disable drain mode
-- `deadline` (integer, optional): Deadline in seconds for the drain operation
-
-### Allocation Tools
-
-#### list_allocations
-Lists all allocations.
-
-Parameters:
-- `namespace` (string, optional): Namespace to list allocations from
-
-#### get_allocation
-Gets details of a specific allocation.
-
-Parameters:
-- `allocation_id` (string, required): ID of the allocation to get
-
-#### stop_allocation
-Stops an allocation.
-
-Parameters:
-- `allocation_id` (string, required): ID of the allocation to stop
-
-### Variable Tools
-
-#### list_variables
-Lists all variables with an optional prefix filter.
-
-Parameters:
-- `prefix` (string, optional): Prefix to filter variables by
-
-#### get_variable
-Gets details of a specific variable.
-
-Parameters:
-- `path` (string, required): Path of the variable to get
-
-#### create_variable
-Creates or updates a variable.
-
-Parameters:
-- `path` (string, required): Path of the variable to create/update
-- `items` (object, required): Key-value pairs for the variable
-
-#### delete_variable
-Deletes a variable.
-
-Parameters:
-- `path` (string, required): Path of the variable to delete
-
-### Volume Tools
-
-#### list_volumes
-Lists all volumes in a namespace.
-
-Parameters:
-- `namespace` (string, optional): Namespace to list volumes from
-
-#### get_volume
-Gets details of a specific volume.
-
-Parameters:
-- `volume_id` (string, required): ID of the volume to get
-- `namespace` (string, optional): Namespace of the volume
-
-
-#### delete_volume
-Deletes a volume.
-
-Parameters:
-- `volume_id` (string, required): ID of the volume to delete
-- `namespace` (string, optional): Namespace of the volume
-
-### ACL Tools
-
-#### Token Management
-
-##### bootstrap_acl_token
-Bootstraps the ACL system and returns the initial management token.
-
-##### list_acl_tokens
-Lists all ACL tokens.
-
-##### get_acl_token
-Gets details of a specific ACL token.
-
-Parameters:
-- `accessor_id` (string, required): Accessor ID of the token to get
-
-##### create_acl_token
-Creates a new ACL token.
-
-Parameters:
-- `name` (string, required): Name of the token
-- `type` (string, required): Type of the token (client or management)
-- `policies` (array, optional): List of policy names to attach to the token
-- `global` (boolean, optional): Whether the token is global
-
-##### delete_acl_token
-Deletes an ACL token.
-
-Parameters:
-- `accessor_id` (string, required): Accessor ID of the token to delete
-
-#### Policy Management
-
-##### list_acl_policies
-Lists all ACL policies.
-
-##### get_acl_policy
-Gets details of a specific ACL policy.
-
-Parameters:
-- `name` (string, required): Name of the policy to get
-
-##### create_acl_policy
-Creates a new ACL policy.
-
-Parameters:
-- `name` (string, required): Name of the policy
-- `description` (string, optional): Description of the policy
-- `rules` (string, required): HCL rules for the policy
-
-##### delete_acl_policy
-Deletes an ACL policy.
-
-Parameters:
-- `name` (string, required): Name of the policy to delete
-
-#### Role Management
-
-##### list_acl_roles
-Lists all ACL roles.
-
-##### get_acl_role
-Gets details of a specific ACL role.
-
-Parameters:
-- `id` (string, required): ID of the role to get
-
-##### create_acl_role
-Creates a new ACL role.
-
-Parameters:
-- `name` (string, required): Name of the role
-- `description` (string, optional): Description of the role
-- `policies` (array, required): List of policy names to attach to the role
-
-##### delete_acl_role
-Deletes an ACL role.
-
-Parameters:
-- `id` (string, required): ID of the role to delete
-
-## Resources
-
-### Job Templates
-
-The server provides access to job templates that can be used as a starting point for creating new jobs. These templates are available through the `job_templates` resource.
-
-## License
-
-MIT
+### From GitHub Releases
+
+Download the binary and configure Claude Desktop like so:
+
+```json
+{
+  "mcpServers": {
+    "mcp_nomad": {
+      "command": "mcp-nomad-go",
+      "args": [],
+      "env": {
+        "NOMAD_TOKEN": "${NOMAD_TOKEN}",
+        "NOMAD_ADDR": "${NOMAD_ADDR}"
+      }
+    }
+  }
+}
+```
+
+### Building from Source
+
+```bash
+go get github.com/kocierik/mcp-nomad
+go install github.com/kocierik/mcp-nomad
+```
+
+### Using Docker linux
+
+```bash
+docker run -i --rm --network=host kocierik/mcpnomad-server:latest
+```
+
+### Using Docker macos/windows
+
+```bash
+docker run -i --rm \
+  -e NOMAD_ADDR=http://host.docker.internal:4646 \
+  kocierik/mcpnomad-server:latest
+```
+
+### For Claude macos/windows:
+
+```json
+{
+  "mcpServers": {
+    "mcp_nomad": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e", "NOMAD_ADDR=http://localhost:4646",
+        "-e", "NOMAD_TOKEN=secret-token-acl-optional", 
+        "-e", "NOMAD_ADDR=http://host.docker.internal:4646",
+        "mcpnomad/server:latest"
+      ]
+    }
+  }
+}
+```
+
+### For Claude linux:
+
+```json
+{
+  "mcpServers": {
+    "mcp_nomad": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "NOMAD_ADDR=http://172.17.0.1:4646",
+        "kocierik/mcpnomad-server:latest"
+      ]
+    }
+  }
+}
+```
