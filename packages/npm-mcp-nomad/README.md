@@ -16,8 +16,8 @@ You have two options at the moment - use pre-built binaries or build it from sou
 
 ```bash
 # Clone the repository
-git clone https://github.com/kocierik/test-mcp-server.git
-cd test-mcp-server
+git clone https://github.com/kocierik/mcp-nomad.git
+cd mcp-nomad
 
 # install dependencies
 go mod tidy
@@ -33,18 +33,16 @@ Once built, you can proceed to add configuration to `claude_desktop_config.json`
 
 ```json
 {
-    "mcpServers": {
-        "test_mcp": {
-            "command": "/path/to/test-mcp-server",
-            "args": [
-                "-transport=stdio",
-                "-test-addr=http://localhost:4646"
-            ],
-            "env": {
-                "NOMAD_TOKEN": "${NOMAD_TOKEN}" // token for ACL
-            }
-        }
+  "mcpServers": {
+    "mcp_nomad": {
+      "command": "mcp-nomad",
+      "args": [],
+      "env": {
+        "NOMAD_TOKEN": "${NOMAD_TOKEN}",
+        "NOMAD_ADDR": "${NOMAD_ADDR}"
+      }
     }
+  }
 }
 ```
 
