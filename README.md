@@ -16,7 +16,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kocierik/mcp-nomad/actions/workflows/test.yaml"><img src="https://github.com/kocierik/mcp-nomad/actions/workflows/test.yaml/badge.svg"></a>
   <a href="https://goreportcard.com/report/github.com/kocierik/mcp-nomad"><img src="https://goreportcard.com/badge/github.com/kocierik/mcp-nomad" alt="Go Report"></a>
   <a href="https://github.com/kocierik/mcp-nomad/releases/latest"><img src="https://img.shields.io/github/v/release/kocierik/mcp-nomad?logo=github&color=22ff22" alt="latest release badge"></a>
   <a href="https://github.com/kocierik/mcp-nomad/blob/main/LICENSE"><img src="https://img.shields.io/github/license/kocierik/mcp-nomad" alt="license badge"></a>
@@ -149,7 +148,6 @@ docker run -i --rm \
         "run",
         "-i",
         "--rm",
-        "-e", "NOMAD_ADDR=http://localhost:4646",
         "-e", "NOMAD_TOKEN=secret-token-acl-optional", 
         "-e", "NOMAD_ADDR=http://host.docker.internal:4646",
         "mcpnomad/server:latest"
@@ -172,6 +170,7 @@ docker run -i --rm \
         "--rm",
         "-e",
         "NOMAD_ADDR=http://172.17.0.1:4646",
+        "-e", "NOMAD_TOKEN=secret-token-acl-optional", 
         "kocierik/mcpnomad-server:latest"
       ]
     }
