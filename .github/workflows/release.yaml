@@ -1,0 +1,103 @@
+name: Release mcp-nomad
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.2'
+
+      - name: Install goreleaser
+        run: |
+          go install github.com/goreleaser/goreleaser/v2@v2.8.1
+          which goreleaser
+
+      - name: Run goreleaser build
+        run: |
+          goreleaser release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: kocierik
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Precreate temp context dir
+        run: |
+          mkdir -p /tmp/kocierik/arm64
+          echo 'FROM localhost:5000/kocierik/mcp-nomad:tmp-linux-arm64' > /tmp/kocierik/arm64/Dockerfile
+          mkdir -p /tmp/kocierik/amd64
+          echo 'FROM localhost:5000/kocierik/mcp-nomad:tmp-linux-amd64' > /tmp/kocierik/amd64/Dockerfile
+
+      - name: Build and push arm64 by digest
+        id: build-arm64
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/kocierik/arm64
+          platforms: linux/arm64
+          tags: kocierik/mcp-nomad
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build and push amd64 by digest
+        id: build-amd64
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/kocierik/amd64
+          platforms: linux/amd64
+          tags: kocierik/mcp-nomad
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Create manifest list and push
+        run: |
+          goreleaser_tag=$(cat dist/metadata.json  | jq -r '.tag')
+          echo "goreleaser_tag: ${goreleaser_tag}"
+
+          digest_arm64="${{ steps.build-arm64.outputs.digest }}"
+          digest_arm64="${digest_arm64#sha256:}"
+          digest_amd64="${{ steps.build-amd64.outputs.digest }}"
+          digest_amd64="${digest_amd64#sha256:}"
+
+          echo "crate multi-arch image for tag kocierik/mcp-nomad:${goreleaser_tag} with images:"
+          echo "  arm64: kocierik/mcp-nomad@sha256:${digest_arm64}"
+          echo "  amd64: kocierik/mcp-nomad@sha256:${digest_amd64}"
+
+          docker buildx imagetools create \
+            -t kocierik/mcp-nomad:${goreleaser_tag} \
+            -t kocierik/mcp-nomad:latest \
+            kocierik/mcp-nomad@sha256:${digest_arm64} \
+            kocierik/mcp-nomad@sha256:${digest_amd64}
+
+      - name: Publish to npm
+        env: 
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          chmod +x ./packages/publish_npm.sh
+          ./packages/publish_npm.sh
