@@ -1,0 +1,24 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - nomadToken
+    properties:
+      nomadToken:
+        type: string
+        description: Authentication token for Nomad (required if ACLs are enabled)
+      nomadAddress:
+        type: string
+        description: Nomad server address
+        default: "http://localhost:4646"
+  commandFunction: |
+    (config) => ({
+      command: "/mcp-nomad",
+      args: [],
+      env: {
+        NOMAD_TOKEN: config.nomadToken,
+        NOMAD_ADDR: config.nomadAddress || "http://localhost:4646",
+        TRANSPORT: "stdio"
+      }
+    })
