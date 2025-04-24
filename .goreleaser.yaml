@@ -22,29 +22,33 @@ builds:
       - linux
       - windows
       - darwin
-
 dockers:
-  - image_templates:
-      - localhost:5000/kocierik/mcp-nomad:tmp-linux-amd64
-    skip_push: false
-    goarch: amd64
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-  - image_templates:
-      - localhost:5000/kocierik/mcp-nomad:tmp-linux-arm64
-    skip_push: false
-    goarch: arm64
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-
+- image_templates:
+  - localhost:5000/kocierik/mcp-nomad:tmp-linux-amd64
+  dockerfile: Dockerfile  
+  skip_push: false
+  goarch: amd64
+  build_flag_templates:
+  - "--platform=linux/amd64"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  extra_files:
+  - mcp-nomad
+- image_templates:
+  - localhost:5000/kocierik/mcp-nomad:tmp-linux-arm64
+  dockerfile: Dockerfile  
+  skip_push: false
+  goarch: arm64
+  build_flag_templates:
+  - "--platform=linux/arm64"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  extra_files:
+  - mcp-nomad
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
