@@ -4,7 +4,7 @@
 set -e
 
 VERSION="1.1.0"
-BINARY_NAME="mcp-nomad-go"
+BINARY_NAME="mcp-nomad"
 
 # Check if Go is installed
 if ! command -v go &> /dev/null; then
