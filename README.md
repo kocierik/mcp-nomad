@@ -45,7 +45,7 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 
 ### Environment Variables
 
-- `NOMAD_ADDR`: Nomad HTTP API address (e.g. http://localhost:4646)
+- `NOMAD_ADDR`: Nomad HTTP API address (default: http://localhost:4646)
 - `NOMAD_TOKEN`: Nomad ACL token (optional)
  
 
@@ -105,7 +105,7 @@ Download the binary and configure Claude Desktop like so:
 {
   "mcpServers": {
     "mcp_nomad": {
-      "command": "mcp-nomad-go",
+      "command": "mcp-nomad",
       "args": [],
       "env": {
         "NOMAD_TOKEN": "${NOMAD_TOKEN}",
