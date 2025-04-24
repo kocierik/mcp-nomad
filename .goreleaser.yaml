@@ -1,9 +1,11 @@
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
+
 # The lines below are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/need to use them.
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
 version: 2
 
 before:
@@ -24,7 +26,6 @@ builds:
 dockers:
   - image_templates:
       - localhost:5000/kocierik/mcp-nomad:tmp-linux-amd64
-    dockerfile: Dockerfile
     skip_push: false
     goarch: amd64
     build_flag_templates:
@@ -33,17 +34,8 @@ dockers:
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - main.go
-      - packages/**/*
-      - types/**/*
-      - utils/**/*
-      - mcp-nomad
   - image_templates:
       - localhost:5000/kocierik/mcp-nomad:tmp-linux-arm64
-    dockerfile: Dockerfile
     skip_push: false
     goarch: arm64
     build_flag_templates:
@@ -52,14 +44,6 @@ dockers:
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
-    extra_files:
-      - go.mod
-      - go.sum
-      - main.go
-      - packages/**/*
-      - types/**/*
-      - utils/**/*
-      - mcp-nomad
 
 archives:
   - format: tar.gz
@@ -97,6 +81,7 @@ release:
 
 git:
   ignore_tags:
-    # This will make goreleaser to build changelogs between releases
-    # instead of from prerelease to release.
+  # This will make goreleaser to build changelogs between releases
+  # instead of from prerelease to release.
     - "{{ if not .Prerelease}}*beta*{{ end }}"
+  
