@@ -36,8 +36,8 @@ npm publish --access public
 cd ../npm-mcp-nomad-linux-x64
 npm publish --access public
 
-npm publish --access public
 cd ../npm-mcp-nomad-linux-arm64
+npm publish --access public
 
 cd ../npm-mcp-nomad-win32-x64
 npm publish --access public
