@@ -84,7 +84,7 @@ func RegisterACLTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 		),
 		mcp.WithString("rules",
 			mcp.Required(),
-			mcp.Description("HCL rules for the policy"),
+			mcp.Description("JSON rules for the policy"),
 		),
 	)
 	s.AddTool(createACLPolicyTool, CreateACLPolicyHandler(nomadClient, logger))
@@ -122,7 +122,8 @@ func RegisterACLTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 		mcp.WithString("description",
 			mcp.Description("Description of the role"),
 		),
-		mcp.WithArray("policies",
+		mcp.WithString("policies",
+			mcp.Required(),
 			mcp.Description("List of policy names to associate with the role"),
 		),
 	)
@@ -404,22 +405,50 @@ func CreateACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) fu
 			description = desc
 		}
 
-		var policies []string
-		if policiesParam, ok := request.Params.Arguments["policies"].([]interface{}); ok {
-			for _, p := range policiesParam {
-				if policy, ok := p.(string); ok {
-					policies = append(policies, policy)
+		policiesParam, ok := request.Params.Arguments["policies"]
+		if !ok || policiesParam == nil {
+			return mcp.NewToolResultError("Specify at least one policy"), nil
+		}
+
+		var policyNames []string
+
+		if policiesArray, ok := policiesParam.([]interface{}); ok {
+			for _, p := range policiesArray {
+				if policyStr, ok := p.(string); ok && policyStr != "" {
+					policyNames = append(policyNames, policyStr)
 				}
 			}
+		} else if policyStr, ok := policiesParam.(string); ok && policyStr != "" {
+			policyNames = append(policyNames, policyStr)
+		} else if policyMap, ok := policiesParam.(map[string]interface{}); ok {
+
+			if policyArr, ok := policyMap["Policies"].([]interface{}); ok {
+				for _, p := range policyArr {
+					if pm, ok := p.(map[string]interface{}); ok {
+						if pName, ok := pm["Name"].(string); ok && pName != "" {
+							policyNames = append(policyNames, pName)
+						}
+					}
+				}
+			}
+		}
+
+		if len(policyNames) == 0 {
+			return mcp.NewToolResultError("Specify at least one policy"), nil
+		}
+
+		policyLinks := make([]map[string]string, len(policyNames))
+		for i, name := range policyNames {
+			policyLinks[i] = map[string]string{"Name": name}
 		}
 
 		role := types.ACLRole{
 			Name:        name,
 			Description: description,
-			Policies:    policies,
+			Policies:    policyLinks,
 		}
 
-		err := nomadClient.CreateACLRole(role)
+		role, err := nomadClient.CreateACLRole(role)
 		if err != nil {
 			logger.Printf("Error creating ACL role: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create ACL role", err), nil

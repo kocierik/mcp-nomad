@@ -21,14 +21,19 @@ type ACLPolicy struct {
 	ModifyIndex int    `json:"modify_index"`
 }
 
+// ACLPolicyLink represents the list of policies
+type ACLPolicyLink struct {
+	Name string `json:"Name"`
+}
+
 // ACLRole represents a Nomad ACL role
 type ACLRole struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Policies    []string `json:"policies"`
-	CreateIndex int      `json:"create_index"`
-	ModifyIndex int      `json:"modify_index"`
+	ID          string              `json:"id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Policies    []map[string]string `json:"policies"`
+	CreateIndex int                 `json:"create_index"`
+	ModifyIndex int                 `json:"modify_index"`
 }
 
 // ACLTokenList represents a list of ACL tokens

@@ -655,9 +655,18 @@ func (c *NomadClient) GetACLRole(id string) (types.ACLRole, error) {
 }
 
 // CreateACLRole creates a new ACL role
-func (c *NomadClient) CreateACLRole(role types.ACLRole) error {
-	_, err := c.makeRequest("POST", "acl/role", nil, role)
-	return err
+func (c *NomadClient) CreateACLRole(role types.ACLRole) (types.ACLRole, error) {
+	respBody, err := c.makeRequest("POST", "acl/role", nil, role)
+	if err != nil {
+		return types.ACLRole{}, err
+	}
+
+	var newRole types.ACLRole
+	if err := json.Unmarshal(respBody, &newRole); err != nil {
+		return types.ACLRole{}, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return newRole, nil
 }
 
 // DeleteACLRole deletes an ACL role
