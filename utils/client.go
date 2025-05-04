@@ -728,6 +728,33 @@ func (c *NomadClient) GetAllocationLogs(allocID string) (string, error) {
 	return string(respBody), nil
 }
 
+// GetClusterLeader return the info of the cluster leader
+func (c *NomadClient) GetClusterLeader() ([]byte, error) {
+	respBody, err := c.makeRequest("GET", "operator/raft/configuration", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return respBody, nil
+}
+
+// ListClusterPeers return the list of the cluster nodes
+func (c *NomadClient) ListClusterPeers() ([]byte, error) {
+	respBody, err := c.makeRequest("GET", "operator/raft/configuration", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return respBody, nil
+}
+
+// ListRegions return the regions listed
+func (c *NomadClient) ListRegions() ([]byte, error) {
+	respBody, err := c.MakeRequest("GET", "regions", nil, nil) // Check Nomad API for correct endpoint
+	if err != nil {
+		return nil, err
+	}
+	return respBody, nil
+}
+
 // GetJobVersions returns the versions of a job
 func (c *NomadClient) GetJobVersions(jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("/v1/job/%s/versions", jobID)

@@ -210,4 +210,7 @@ func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *
 
 	// Register resources
 	tools.RegisterResources(s, nomadClient, logger)
+
+	// Register cluster tools
+	tools.RegisterClusterTools(s, nomadClient, logger)
 }
