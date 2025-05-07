@@ -114,9 +114,48 @@ func RegisterJobTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 		),
 	)
 	s.AddTool(getJobEvaluationsTool, GetJobEvaluationsHandler(nomadClient, logger))
+
+	// Get job deployments tool
+	getJobDeploymentsTool := mcp.NewTool("get_job_deployments",
+		mcp.WithDescription("Get deployments for a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job to get deployments for"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(getJobDeploymentsTool, GetJobDeploymentsHandler(nomadClient, logger))
+
+	// Get job summary tool
+	getJobSummaryTool := mcp.NewTool("get_job_summary",
+		mcp.WithDescription("Get summary for a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job to get summary for"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(getJobSummaryTool, GetJobSummaryHandler(nomadClient, logger))
+
+	// Get job services tool
+	getJobServicesTool := mcp.NewTool("get_job_services",
+		mcp.WithDescription("Get services for a job"),
+		mcp.WithString("job_id",
+			mcp.Required(),
+			mcp.Description("The ID of the job to get services for"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the job (default: default)"),
+		),
+	)
+	s.AddTool(getJobServicesTool, GetJobServicesHandler(nomadClient, logger))
 }
 
-// ListJobsHandler returns a handler for the list_jobs tool
+// ListJobsHandler returns a handler for listing jobs
 func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		namespace := "default"
@@ -125,7 +164,7 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 		}
 
 		status := ""
-		if s, ok := request.Params.Arguments["status"].(string); ok {
+		if s, ok := request.Params.Arguments["status"].(string); ok && s != "" {
 			status = s
 		}
 
@@ -137,19 +176,19 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 
 		jobsJSON, err := json.MarshalIndent(jobs, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format job list", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format jobs", err), nil
 		}
 
 		return mcp.NewToolResultText(string(jobsJSON)), nil
 	}
 }
 
-// GetJobHandler returns a handler for the get_job tool
+// GetJobHandler returns a handler for getting job details
 func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		jobID, ok := request.Params.Arguments["job_id"].(string)
 		if !ok || jobID == "" {
-			return mcp.NewToolResultError("Job ID is required"), nil
+			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
@@ -159,25 +198,25 @@ func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 
 		job, err := client.GetJob(jobID, namespace)
 		if err != nil {
-			logger.Printf("Error getting job %s: %v", jobID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to get job %s", jobID), err), nil
+			logger.Printf("Error getting job: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get job", err), nil
 		}
 
 		jobJSON, err := json.MarshalIndent(job, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format job details", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format job", err), nil
 		}
 
 		return mcp.NewToolResultText(string(jobJSON)), nil
 	}
 }
 
-// RunJobHandler returns a handler for the run_job tool
+// RunJobHandler returns a handler for running a job
 func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		jobSpec, ok := request.Params.Arguments["job_spec"].(string)
 		if !ok || jobSpec == "" {
-			return mcp.NewToolResultError("Job specification is required"), nil
+			return mcp.NewToolResultError("job_spec is required"), nil
 		}
 
 		detach := false
@@ -193,19 +232,19 @@ func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 
 		resultJSON, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format response", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
 		}
 
 		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }
 
-// StopJobHandler returns a handler for the stop_job tool
+// StopJobHandler returns a handler for stopping a job
 func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		jobID, ok := request.Params.Arguments["job_id"].(string)
 		if !ok || jobID == "" {
-			return mcp.NewToolResultError("Job ID is required"), nil
+			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
@@ -220,13 +259,13 @@ func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 
 		result, err := client.StopJob(jobID, namespace, purge)
 		if err != nil {
-			logger.Printf("Error stopping job %s: %v", jobID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to stop job %s", jobID), err), nil
+			logger.Printf("Error stopping job: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to stop job", err), nil
 		}
 
 		resultJSON, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format response", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
 		}
 
 		return mcp.NewToolResultText(string(resultJSON)), nil
@@ -248,7 +287,7 @@ func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context
 
 		count, ok := request.Params.Arguments["count"].(float64)
 		if !ok {
-			return mcp.NewToolResultError("count is required and must be a number"), nil
+			return mcp.NewToolResultError("count is required"), nil
 		}
 
 		namespace := "default"
@@ -256,28 +295,22 @@ func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context
 			namespace = ns
 		}
 
-		path := fmt.Sprintf("job/%s/scale", jobID)
-		if namespace != "default" {
-			path = fmt.Sprintf("namespace/%s/job/%s/scale", namespace, jobID)
-		}
-
-		scaleRequest := map[string]interface{}{
-			"Count": count,
-			"Target": map[string]interface{}{
-				"Group": group,
-			},
-			"Meta": map[string]string{
-				"reason": "Scaled via API",
-			},
-		}
-
-		body, err := client.MakeRequest("POST", path, nil, scaleRequest)
+		err := client.ScaleTaskGroup(jobID, group, int(count), namespace)
 		if err != nil {
 			logger.Printf("Error scaling job: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to scale job", err), nil
 		}
 
-		return mcp.NewToolResultText(string(body)), nil
+		result := map[string]string{
+			"message": fmt.Sprintf("Successfully scaled job %s task group %s to %d", jobID, group, int(count)),
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }
 
@@ -294,18 +327,18 @@ func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			namespace = ns
 		}
 
-		path := fmt.Sprintf("job/%s/allocations", jobID)
-		if namespace != "default" {
-			path = fmt.Sprintf("namespace/%s/job/%s/allocations", namespace, jobID)
-		}
-
-		body, err := client.MakeRequest("GET", path, nil, nil)
+		allocations, err := client.ListJobAllocations(jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job allocations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job allocations", err), nil
 		}
 
-		return mcp.NewToolResultText(string(body)), nil
+		allocationsJSON, err := json.MarshalIndent(allocations, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format allocations", err), nil
+		}
+
+		return mcp.NewToolResultText(string(allocationsJSON)), nil
 	}
 }
 
@@ -322,17 +355,101 @@ func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			namespace = ns
 		}
 
-		path := fmt.Sprintf("job/%s/evaluations", jobID)
-		if namespace != "default" {
-			path = fmt.Sprintf("namespace/%s/job/%s/evaluations", namespace, jobID)
-		}
-
-		body, err := client.MakeRequest("GET", path, nil, nil)
+		evaluations, err := client.ListJobEvaluations(jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job evaluations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job evaluations", err), nil
 		}
 
-		return mcp.NewToolResultText(string(body)), nil
+		evaluationsJSON, err := json.MarshalIndent(evaluations, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format evaluations", err), nil
+		}
+
+		return mcp.NewToolResultText(string(evaluationsJSON)), nil
+	}
+}
+
+// GetJobDeploymentsHandler returns a handler for getting job deployments
+func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		jobID, ok := request.Params.Arguments["job_id"].(string)
+		if !ok || jobID == "" {
+			return mcp.NewToolResultError("job_id is required"), nil
+		}
+
+		namespace := "default"
+		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+			namespace = ns
+		}
+
+		deployments, err := client.ListJobDeployments(jobID, namespace)
+		if err != nil {
+			logger.Printf("Error getting job deployments: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get job deployments", err), nil
+		}
+
+		deploymentsJSON, err := json.MarshalIndent(deployments, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format deployments", err), nil
+		}
+
+		return mcp.NewToolResultText(string(deploymentsJSON)), nil
+	}
+}
+
+// GetJobSummaryHandler returns a handler for getting job summary
+func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		jobID, ok := request.Params.Arguments["job_id"].(string)
+		if !ok || jobID == "" {
+			return mcp.NewToolResultError("job_id is required"), nil
+		}
+
+		namespace := "default"
+		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+			namespace = ns
+		}
+
+		summary, err := client.GetJobSummary(jobID, namespace)
+		if err != nil {
+			logger.Printf("Error getting job summary: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get job summary", err), nil
+		}
+
+		summaryJSON, err := json.MarshalIndent(summary, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format job summary", err), nil
+		}
+
+		return mcp.NewToolResultText(string(summaryJSON)), nil
+	}
+}
+
+// GetJobServicesHandler returns a handler for getting job services
+func GetJobServicesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		jobID, ok := request.Params.Arguments["job_id"].(string)
+		if !ok || jobID == "" {
+			return mcp.NewToolResultError("job_id is required"), nil
+		}
+
+		namespace := "default"
+		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+			namespace = ns
+		}
+
+		services, err := client.ListJobServices(jobID, namespace)
+		if err != nil {
+			logger.Printf("Error getting job services: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get job services", err), nil
+		}
+
+		servicesJSON, err := json.MarshalIndent(services, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format job services", err), nil
+		}
+
+		return mcp.NewToolResultText(string(servicesJSON)), nil
 	}
 }
