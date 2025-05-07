@@ -835,3 +835,49 @@ func (c *NomadClient) GetTaskLogs(allocID, task, logType string, follow bool, ta
 
 	return string(respBody), nil
 }
+
+// ListSentinelPolicies lists all Sentinel policies
+func (c *NomadClient) ListSentinelPolicies() ([]types.SentinelPolicy, error) {
+	respBody, err := c.makeRequest("GET", "sentinel/policies", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var policies []types.SentinelPolicy
+	if err := json.Unmarshal(respBody, &policies); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return policies, nil
+}
+
+// GetSentinelPolicy retrieves a specific Sentinel policy by name
+func (c *NomadClient) GetSentinelPolicy(name string) (types.SentinelPolicy, error) {
+	path := fmt.Sprintf("sentinel/policy/%s", name)
+
+	respBody, err := c.makeRequest("GET", path, nil, nil)
+	if err != nil {
+		return types.SentinelPolicy{}, err
+	}
+
+	var policy types.SentinelPolicy
+	if err := json.Unmarshal(respBody, &policy); err != nil {
+		return types.SentinelPolicy{}, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return policy, nil
+}
+
+// CreateSentinelPolicy creates a new Sentinel policy
+func (c *NomadClient) CreateSentinelPolicy(policy types.SentinelPolicy) error {
+	path := fmt.Sprintf("sentinel/policy/%s", policy.Name)
+	_, err := c.makeRequest("POST", path, nil, policy)
+	return err
+}
+
+// DeleteSentinelPolicy deletes a Sentinel policy
+func (c *NomadClient) DeleteSentinelPolicy(name string) error {
+	path := fmt.Sprintf("sentinel/policy/%s", name)
+	_, err := c.makeRequest("DELETE", path, nil, nil)
+	return err
+}

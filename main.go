@@ -213,4 +213,7 @@ func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *
 
 	// Register cluster tools
 	tools.RegisterClusterTools(s, nomadClient, logger)
+
+	// Register Sentinel tools
+	tools.RegisterSentinelTools(s, nomadClient, logger)
 }
