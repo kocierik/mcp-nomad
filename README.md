@@ -1,4 +1,3 @@
-
 <h4 align="center">Golang-based MCP server connecting to Nomad</h4>
 
 <h1 align="center">
@@ -23,16 +22,133 @@
 
 ## Features
 
-MCP 💬 prompt 🗂️ resource 🤖 tool 
+<details>
+<summary>Job Management</summary>
 
-- 🗂️🤖 List Nomad jobs
-- 💬🤖 List Nomad nodes
-- 🤖 Get Nomad job status
-- 🤖 Get Nomad allocation logs
-- 🤖 Restart a Nomad job
-- 🤖 List deployments
-- 🤖 View allocation info
-- 💬 Get node metrics
+- List jobs
+- Get job details
+- Run jobs
+- Stop jobs
+- Get job versions
+- Get job submission
+- List job allocations
+- List job evaluations
+- List job deployments
+- Get job deployment
+- Get job summary
+- Update jobs
+- Dispatch parameterized jobs
+- Revert jobs
+- Set job stability
+- Create job evaluations
+- Create job plans
+- Force new periodic instances
+- Get job scale status
+- Scale task groups
+- List job services
+</details>
+
+<details>
+<summary>Deployment Management</summary>
+
+- List deployments
+- Get deployment details
+</details>
+
+<details>
+<summary>Namespace Management</summary>
+
+- List namespaces
+- Create namespaces
+- Delete namespaces
+</details>
+
+<details>
+<summary>Node Management</summary>
+
+- List nodes
+- Get node details
+- Drain nodes
+- Set node eligibility
+</details>
+
+<details>
+<summary>Allocation Management</summary>
+
+- List allocations
+- Get allocation details
+- Get allocation logs
+- Get task logs
+</details>
+
+<details>
+<summary>Variable Management</summary>
+
+- List variables with filtering and pagination
+- Get variable details
+- Create variables with namespace support
+- Delete variables with CAS support
+
+Example variable operations:
+```bash
+# List variables in a namespace
+list_variables namespace="my-namespace" prefix="my/path" per_page=10
+
+# Get a specific variable
+get_variable path="my/path" namespace="my-namespace"
+
+# Create a variable
+create_variable path="my/path" key="username" value="john" namespace="my-namespace"
+
+# Delete a variable
+delete_variable path="my/path" namespace="my-namespace"
+```
+</details>
+
+<details>
+<summary>Volume Management</summary>
+
+- List volumes
+- Get volume details
+- Delete volumes
+- List volume claims
+- Delete volume claims
+</details>
+
+<details>
+<summary>ACL Management</summary>
+
+- List ACL tokens
+- Get ACL token details
+- Create ACL tokens
+- Delete ACL tokens
+- List ACL policies
+- Get ACL policy details
+- Create ACL policies
+- Delete ACL policies
+- List ACL roles
+- Get ACL role details
+- Create ACL roles
+- Delete ACL roles
+- Bootstrap ACL system
+</details>
+
+<details>
+<summary>Sentinel Policy Management</summary>
+
+- List Sentinel policies
+- Get Sentinel policy details
+- Create Sentinel policies
+- Delete Sentinel policies
+</details>
+
+<details>
+<summary>Cluster Management</summary>
+
+- Get cluster leader
+- List cluster peers
+- List regions
+</details>
 
 ## Browse With Inspector
 
@@ -177,3 +293,7 @@ docker run -i --rm \
   }
 }
 ```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
