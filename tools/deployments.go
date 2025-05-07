@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/kocierik/mcp-nomad/utils"
@@ -34,7 +33,7 @@ func RegisterDeploymentTools(s *server.MCPServer, nomadClient *utils.NomadClient
 	s.AddTool(getDeploymentTool, GetDeploymentHandler(nomadClient, logger))
 }
 
-// ListDeploymentsHandler returns a handler for the list_deployments tool
+// ListDeploymentsHandler returns a handler for listing deployments
 func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		namespace := "default"
@@ -50,30 +49,30 @@ func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(
 
 		deploymentsJSON, err := json.MarshalIndent(deployments, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format deployment list", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format deployments", err), nil
 		}
 
 		return mcp.NewToolResultText(string(deploymentsJSON)), nil
 	}
 }
 
-// GetDeploymentHandler returns a handler for the get_deployment tool
+// GetDeploymentHandler returns a handler for getting deployment details
 func GetDeploymentHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		deploymentID, ok := request.Params.Arguments["deployment_id"].(string)
 		if !ok || deploymentID == "" {
-			return mcp.NewToolResultError("Deployment ID is required"), nil
+			return mcp.NewToolResultError("deployment_id is required"), nil
 		}
 
 		deployment, err := client.GetDeployment(deploymentID)
 		if err != nil {
-			logger.Printf("Error getting deployment %s: %v", deploymentID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to get deployment %s", deploymentID), err), nil
+			logger.Printf("Error getting deployment: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get deployment", err), nil
 		}
 
 		deploymentJSON, err := json.MarshalIndent(deployment, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format deployment details", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format deployment", err), nil
 		}
 
 		return mcp.NewToolResultText(string(deploymentJSON)), nil

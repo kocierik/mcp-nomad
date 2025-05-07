@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -48,53 +49,41 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient *utils.NomadClient
 // ListAllocationsHandler returns a handler for listing allocations
 func ListAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
-
-		jobID := ""
-		if jid, ok := request.Params.Arguments["job_id"].(string); ok {
-			jobID = jid
-		}
-
-		// List allocations using the Nomad API
-		path := "allocations"
-		queryParams := make(map[string]string)
-		if namespace != "default" {
-			queryParams["namespace"] = namespace
-		}
-		if jobID != "" {
-			queryParams["job_id"] = jobID
-		}
-
-		body, err := client.MakeRequest("GET", path, queryParams, nil)
+		allocations, err := client.ListAllocations()
 		if err != nil {
 			logger.Printf("Error listing allocations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list allocations", err), nil
 		}
 
-		return mcp.NewToolResultText(string(body)), nil
+		allocationsJSON, err := json.MarshalIndent(allocations, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format allocations", err), nil
+		}
+
+		return mcp.NewToolResultText(string(allocationsJSON)), nil
 	}
 }
 
 // GetAllocationHandler returns a handler for getting allocation details
 func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocationID, ok := request.Params.Arguments["allocation_id"].(string)
-		if !ok || allocationID == "" {
+		allocID, ok := request.Params.Arguments["allocation_id"].(string)
+		if !ok || allocID == "" {
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
 
-		// Get allocation using the Nomad API
-		path := fmt.Sprintf("allocation/%s", allocationID)
-		body, err := client.MakeRequest("GET", path, nil, nil)
+		allocation, err := client.GetAllocation(allocID)
 		if err != nil {
 			logger.Printf("Error getting allocation: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get allocation", err), nil
 		}
 
-		return mcp.NewToolResultText(string(body)), nil
+		allocationJSON, err := json.MarshalIndent(allocation, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format allocation", err), nil
+		}
+
+		return mcp.NewToolResultText(string(allocationJSON)), nil
 	}
 }
 

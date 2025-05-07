@@ -4,6 +4,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/kocierik/mcp-nomad/types"
@@ -44,7 +45,7 @@ func RegisterNamespaceTools(s *server.MCPServer, nomadClient *utils.NomadClient,
 	s.AddTool(deleteNamespaceTool, DeleteNamespaceHandler(nomadClient, logger))
 }
 
-// ListNamespacesHandler returns a handler for the list_namespaces tool
+// ListNamespacesHandler returns a handler for listing namespaces
 func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		namespaces, err := client.ListNamespaces()
@@ -55,24 +56,24 @@ func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(c
 
 		namespacesJSON, err := json.MarshalIndent(namespaces, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format namespace list", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format namespaces", err), nil
 		}
 
 		return mcp.NewToolResultText(string(namespacesJSON)), nil
 	}
 }
 
-// CreateNamespaceHandler returns a handler for the create_namespace tool
+// CreateNamespaceHandler returns a handler for creating a namespace
 func CreateNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
-			return mcp.NewToolResultError("Namespace name is required"), nil
+			return mcp.NewToolResultError("name is required"), nil
 		}
 
 		description := ""
-		if desc, ok := request.Params.Arguments["description"].(string); ok {
-			description = desc
+		if d, ok := request.Params.Arguments["description"].(string); ok {
+			description = d
 		}
 
 		namespace := types.Namespace{
@@ -82,28 +83,46 @@ func CreateNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(
 
 		err := client.CreateNamespace(namespace)
 		if err != nil {
-			logger.Printf("Error creating namespace %s: %v", name, err)
+			logger.Printf("Error creating namespace: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create namespace", err), nil
 		}
 
-		return mcp.NewToolResultText("Namespace '" + name + "' created successfully"), nil
+		result := map[string]string{
+			"message": fmt.Sprintf("Successfully created namespace %s", name),
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }
 
-// DeleteNamespaceHandler returns a handler for the delete_namespace tool
+// DeleteNamespaceHandler returns a handler for deleting a namespace
 func DeleteNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
 		if !ok || name == "" {
-			return mcp.NewToolResultError("Namespace name is required"), nil
+			return mcp.NewToolResultError("name is required"), nil
 		}
 
 		err := client.DeleteNamespace(name)
 		if err != nil {
-			logger.Printf("Error deleting namespace %s: %v", name, err)
+			logger.Printf("Error deleting namespace: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete namespace", err), nil
 		}
 
-		return mcp.NewToolResultText("Namespace '" + name + "' deleted successfully"), nil
+		result := map[string]string{
+			"message": fmt.Sprintf("Successfully deleted namespace %s", name),
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }

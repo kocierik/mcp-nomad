@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/kocierik/mcp-nomad/utils"
@@ -39,10 +40,9 @@ func RegisterLogTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 	s.AddTool(getTaskLogsTool, GetTaskLogsHandler(nomadClient, logger))
 }
 
-// GetTaskLogsHandler creates a handler for retrieving task logs
-func GetTaskLogsHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// GetTaskLogsHandler returns a handler for getting task logs
+func GetTaskLogsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Extract parameters
 		allocID, ok := request.Params.Arguments["allocation_id"].(string)
 		if !ok || allocID == "" {
 			return mcp.NewToolResultError("allocation_id is required"), nil
@@ -54,8 +54,8 @@ func GetTaskLogsHandler(nomadClient *utils.NomadClient, logger *log.Logger) func
 		}
 
 		logType := "stdout"
-		if t, ok := request.Params.Arguments["type"].(string); ok && t != "" {
-			logType = t
+		if lt, ok := request.Params.Arguments["log_type"].(string); ok && lt != "" {
+			logType = lt
 		}
 
 		follow := false
@@ -63,24 +63,58 @@ func GetTaskLogsHandler(nomadClient *utils.NomadClient, logger *log.Logger) func
 			follow = f
 		}
 
-		var tail int64
+		tail := int64(0)
 		if t, ok := request.Params.Arguments["tail"].(float64); ok {
 			tail = int64(t)
 		}
 
-		var offset int64
+		offset := int64(0)
 		if o, ok := request.Params.Arguments["offset"].(float64); ok {
 			offset = int64(o)
 		}
 
-		// Get logs using the client method
-		logs, err := nomadClient.GetTaskLogs(allocID, task, logType, follow, tail, offset)
+		logs, err := client.GetTaskLogs(allocID, task, logType, follow, tail, offset)
 		if err != nil {
 			logger.Printf("Error getting task logs: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get task logs", err), nil
 		}
 
-		// Return the logs
-		return mcp.NewToolResultText(logs), nil
+		result := map[string]string{
+			"logs": logs,
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format logs", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
+	}
+}
+
+// GetAllocationLogsHandler returns a handler for getting allocation logs
+func GetAllocationLogsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		allocID, ok := request.Params.Arguments["allocation_id"].(string)
+		if !ok || allocID == "" {
+			return mcp.NewToolResultError("allocation_id is required"), nil
+		}
+
+		logs, err := client.GetAllocationLogs(allocID)
+		if err != nil {
+			logger.Printf("Error getting allocation logs: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get allocation logs", err), nil
+		}
+
+		result := map[string]string{
+			"logs": logs,
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format logs", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }

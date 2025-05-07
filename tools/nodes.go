@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/kocierik/mcp-nomad/utils"
@@ -70,7 +69,7 @@ func RegisterNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logg
 func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		status := ""
-		if s, ok := request.Params.Arguments["status"].(string); ok {
+		if s, ok := request.Params.Arguments["status"].(string); ok && s != "" {
 			status = s
 		}
 
@@ -82,7 +81,7 @@ func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 
 		nodesJSON, err := json.MarshalIndent(nodes, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format node list", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format nodes", err), nil
 		}
 
 		return mcp.NewToolResultText(string(nodesJSON)), nil
@@ -99,13 +98,13 @@ func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 
 		node, err := client.GetNode(nodeID)
 		if err != nil {
-			logger.Printf("Error getting node %s: %v", nodeID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to get node %s", nodeID), err), nil
+			logger.Printf("Error getting node: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get node", err), nil
 		}
 
 		nodeJSON, err := json.MarshalIndent(node, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format node details", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format node", err), nil
 		}
 
 		return mcp.NewToolResultText(string(nodeJSON)), nil
@@ -120,27 +119,32 @@ func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 			return mcp.NewToolResultError("node_id is required"), nil
 		}
 
-		enable, ok := request.Params.Arguments["enable"].(bool)
-		if !ok {
-			return mcp.NewToolResultError("enable is required"), nil
+		enable := true
+		if e, ok := request.Params.Arguments["enable"].(bool); ok {
+			enable = e
 		}
 
-		deadline := int64(-1)
+		deadline := int64(0)
 		if d, ok := request.Params.Arguments["deadline"].(float64); ok {
 			deadline = int64(d)
 		}
 
 		result, err := client.DrainNode(nodeID, enable, deadline)
 		if err != nil {
-			logger.Printf("Error draining node %s: %v", nodeID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to drain node %s", nodeID), err), nil
+			logger.Printf("Error draining node: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to drain node", err), nil
 		}
 
-		action := "enabled"
-		if !enable {
-			action = "disabled"
+		response := map[string]string{
+			"message": result,
 		}
-		return mcp.NewToolResultText(fmt.Sprintf("Drain mode %s for node %s. %s", action, nodeID, result)), nil
+
+		responseJSON, err := json.MarshalIndent(response, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format response", err), nil
+		}
+
+		return mcp.NewToolResultText(string(responseJSON)), nil
 	}
 }
 
@@ -157,16 +161,17 @@ func EligibilityNodeHandler(client *utils.NomadClient, logger *log.Logger) func(
 			return mcp.NewToolResultError("eligible is required"), nil
 		}
 
-		if eligible != "eligible" && eligible != "ineligible" {
-			return mcp.NewToolResultError("eligible must be either 'eligible' or 'ineligible'"), nil
-		}
-
-		_, err := client.EligibilityNode(nodeID, eligible)
+		node, err := client.EligibilityNode(nodeID, eligible)
 		if err != nil {
-			logger.Printf("Error setting eligibility for node %s: %v", nodeID, err)
-			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to set eligibility for node %s", nodeID), err), nil
+			logger.Printf("Error setting node eligibility: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to set node eligibility", err), nil
 		}
 
-		return mcp.NewToolResultText(fmt.Sprintf("Node %s eligibility set to %s", nodeID, eligible)), nil
+		nodeJSON, err := json.MarshalIndent(node, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format node", err), nil
+		}
+
+		return mcp.NewToolResultText(string(nodeJSON)), nil
 	}
 }

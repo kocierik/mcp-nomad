@@ -881,3 +881,399 @@ func (c *NomadClient) DeleteSentinelPolicy(name string) error {
 	_, err := c.makeRequest("DELETE", path, nil, nil)
 	return err
 }
+
+// GetJobSubmission retrieves the original job submission
+func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) {
+	path := fmt.Sprintf("job/%s/submission", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/submission", namespace, jobID)
+	}
+
+	respBody, err := c.makeRequest("GET", path, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(respBody), nil
+}
+
+// ListJobVersions lists all versions of a job
+func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, error) {
+	path := fmt.Sprintf("job/%s/versions", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/versions", namespace, jobID)
+	}
+
+	var versions []types.Job
+	err := c.get(path, &versions)
+	if err != nil {
+		return nil, err
+	}
+
+	return versions, nil
+}
+
+// ListJobAllocations lists all allocations for a job
+func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Allocation, error) {
+	path := fmt.Sprintf("job/%s/allocations", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/allocations", namespace, jobID)
+	}
+
+	var allocations []types.Allocation
+	err := c.get(path, &allocations)
+	if err != nil {
+		return nil, err
+	}
+
+	return allocations, nil
+}
+
+// ListJobEvaluations lists all evaluations for a job
+func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evaluation, error) {
+	path := fmt.Sprintf("job/%s/evaluations", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/evaluations", namespace, jobID)
+	}
+
+	var evaluations []types.Evaluation
+	err := c.get(path, &evaluations)
+	if err != nil {
+		return nil, err
+	}
+
+	return evaluations, nil
+}
+
+// ListJobDeployments lists all deployments for a job
+func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDeployment, error) {
+	path := fmt.Sprintf("job/%s/deployments", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/deployments", namespace, jobID)
+	}
+
+	var deployments []types.JobDeployment
+	err := c.get(path, &deployments)
+	if err != nil {
+		return nil, err
+	}
+
+	return deployments, nil
+}
+
+// GetJobDeployment retrieves the most recent deployment for a job
+func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeployment, error) {
+	path := fmt.Sprintf("job/%s/deployment", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/deployment", namespace, jobID)
+	}
+
+	var deployment types.JobDeployment
+	err := c.get(path, &deployment)
+	if err != nil {
+		return types.JobDeployment{}, err
+	}
+
+	return deployment, nil
+}
+
+// GetJobSummary retrieves a summary of a job
+func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, error) {
+	path := fmt.Sprintf("job/%s/summary", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/summary", namespace, jobID)
+	}
+
+	var response struct {
+		JobID       string                       `json:"JobID"`
+		Namespace   string                       `json:"Namespace"`
+		Summary     map[string]types.TaskSummary `json:"Summary"`
+		Children    *types.JobChildrenSummary    `json:"Children"`
+		CreateIndex int                          `json:"CreateIndex"`
+		ModifyIndex int                          `json:"ModifyIndex"`
+	}
+	err := c.get(path, &response)
+	if err != nil {
+		return types.JobSummary{}, err
+	}
+
+	return types.JobSummary{
+		JobID:       response.JobID,
+		Summary:     response.Summary,
+		Children:    response.Children,
+		CreateIndex: response.CreateIndex,
+		ModifyIndex: response.ModifyIndex,
+	}, nil
+}
+
+// UpdateJob updates an existing job
+func (c *NomadClient) UpdateJob(job types.Job, enforceIndex bool) error {
+	path := "jobs"
+	if enforceIndex {
+		path = fmt.Sprintf("%s?enforce_index=true", path)
+	}
+
+	_, err := c.makeRequest("POST", path, nil, job)
+	return err
+}
+
+// DispatchJob dispatches a parameterized job
+func (c *NomadClient) DispatchJob(jobID string, payload map[string]interface{}, meta map[string]string) (string, error) {
+	path := fmt.Sprintf("job/%s/dispatch", jobID)
+
+	request := map[string]interface{}{
+		"Payload": payload,
+		"Meta":    meta,
+	}
+
+	respBody, err := c.makeRequest("POST", path, nil, request)
+	if err != nil {
+		return "", err
+	}
+
+	var response struct {
+		DispatchedJobID string `json:"DispatchedJobID"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return "", err
+	}
+
+	return response.DispatchedJobID, nil
+}
+
+// RevertJob reverts a job to a specific version
+func (c *NomadClient) RevertJob(jobID string, version int, enforceIndex bool) error {
+	path := fmt.Sprintf("job/%s/revert", jobID)
+	if enforceIndex {
+		path = fmt.Sprintf("%s?enforce_index=true", path)
+	}
+
+	request := map[string]interface{}{
+		"JobVersion": version,
+	}
+
+	_, err := c.makeRequest("POST", path, nil, request)
+	return err
+}
+
+// SetJobStability sets the stability of a job
+func (c *NomadClient) SetJobStability(jobID string, version int, stable bool) error {
+	path := fmt.Sprintf("job/%s/stability", jobID)
+
+	request := map[string]interface{}{
+		"JobVersion": version,
+		"Stable":     stable,
+	}
+
+	_, err := c.makeRequest("POST", path, nil, request)
+	return err
+}
+
+// CreateJobEvaluation forces a new evaluation for a job
+func (c *NomadClient) CreateJobEvaluation(jobID string) (string, error) {
+	path := fmt.Sprintf("job/%s/evaluate", jobID)
+
+	respBody, err := c.makeRequest("POST", path, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	var response struct {
+		EvalID string `json:"EvalID"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return "", err
+	}
+
+	return response.EvalID, nil
+}
+
+// CreateJobPlan creates a plan for a job
+func (c *NomadClient) CreateJobPlan(job types.Job) (types.JobPlan, error) {
+	path := "job/plan"
+
+	respBody, err := c.makeRequest("POST", path, nil, job)
+	if err != nil {
+		return types.JobPlan{}, err
+	}
+
+	var plan types.JobPlan
+	if err := json.Unmarshal(respBody, &plan); err != nil {
+		return types.JobPlan{}, err
+	}
+
+	return plan, nil
+}
+
+// ForceNewPeriodicInstance forces a new instance of a periodic job
+func (c *NomadClient) ForceNewPeriodicInstance(jobID string) error {
+	path := fmt.Sprintf("job/%s/periodic/force", jobID)
+
+	_, err := c.makeRequest("POST", path, nil, nil)
+	return err
+}
+
+// GetJobScaleStatus retrieves the scale status of a job
+func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScaleStatus, error) {
+	path := fmt.Sprintf("job/%s/scale", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/scale", namespace, jobID)
+	}
+
+	var status types.JobScaleStatus
+	err := c.get(path, &status)
+	if err != nil {
+		return types.JobScaleStatus{}, err
+	}
+
+	return status, nil
+}
+
+// ScaleTaskGroup scales a task group
+func (c *NomadClient) ScaleTaskGroup(jobID, group string, count int, namespace string) error {
+	path := fmt.Sprintf("job/%s/scale", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/scale", namespace, jobID)
+	}
+
+	request := map[string]interface{}{
+		"Count": count,
+		"Target": map[string]interface{}{
+			"Group": group,
+		},
+	}
+
+	_, err := c.makeRequest("POST", path, nil, request)
+	return err
+}
+
+// ListJobServices lists all services for a job
+func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service, error) {
+	path := fmt.Sprintf("job/%s/services", jobID)
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/job/%s/services", namespace, jobID)
+	}
+
+	var services []types.Service
+	err := c.get(path, &services)
+	if err != nil {
+		return nil, err
+	}
+
+	return services, nil
+}
+
+// ListVariables lists variables in the specified namespace
+func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, perPage int, filter string) ([]types.Variable, error) {
+	path := "vars"
+	if namespace != "" && namespace != "default" {
+		path = fmt.Sprintf("namespace/%s/vars", namespace)
+	}
+
+	queryParams := make(map[string]string)
+	if prefix != "" {
+		queryParams["prefix"] = prefix
+	}
+	if nextToken != "" {
+		queryParams["next_token"] = nextToken
+	}
+	if perPage > 0 {
+		queryParams["per_page"] = strconv.Itoa(perPage)
+	}
+	if filter != "" {
+		queryParams["filter"] = filter
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var variables []types.Variable
+	if err := json.Unmarshal(respBody, &variables); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return variables, nil
+}
+
+// GetVariable retrieves a specific variable by path
+func (c *NomadClient) GetVariable(path, namespace string) (types.Variable, error) {
+	apiPath := fmt.Sprintf("var/%s", path)
+	if namespace != "" && namespace != "default" {
+		apiPath = fmt.Sprintf("namespace/%s/var/%s", namespace, path)
+	}
+
+	respBody, err := c.makeRequest("GET", apiPath, nil, nil)
+	if err != nil {
+		return types.Variable{}, err
+	}
+
+	var variable types.Variable
+	if err := json.Unmarshal(respBody, &variable); err != nil {
+		return types.Variable{}, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return variable, nil
+}
+
+// CreateVariable creates a new variable
+func (c *NomadClient) CreateVariable(variable types.Variable, namespace string, cas int, lockOperation string) error {
+	apiPath := fmt.Sprintf("var/%s", variable.Path)
+
+	// Parse the Value string into a map to use as request body
+	var requestBody map[string]interface{}
+	if err := json.Unmarshal([]byte(variable.Value), &requestBody); err != nil {
+		return fmt.Errorf("failed to parse variable value: %v", err)
+	}
+
+	// Add CAS if provided
+	if cas > 0 {
+		requestBody["CAS"] = cas
+	}
+
+	// Add lock operation if provided
+	if lockOperation != "" {
+		requestBody["LockOperation"] = lockOperation
+	}
+
+	// Add namespace as query parameter if provided
+	queryParams := make(map[string]string)
+	if namespace != "" && namespace != "default" {
+		queryParams["namespace"] = namespace
+	}
+
+	_, err := c.makeRequest("PUT", apiPath, queryParams, requestBody)
+	return err
+}
+
+// DeleteVariable deletes a variable by path
+func (c *NomadClient) DeleteVariable(path, namespace string, cas int) error {
+	apiPath := fmt.Sprintf("var/%s", path)
+	if namespace != "" && namespace != "default" {
+		apiPath = fmt.Sprintf("namespace/%s/var/%s", namespace, path)
+	}
+
+	queryParams := make(map[string]string)
+	if cas > 0 {
+		queryParams["cas"] = strconv.Itoa(cas)
+	}
+
+	_, err := c.makeRequest("DELETE", apiPath, queryParams, nil)
+	return err
+}
+
+// ListAllocations lists all allocations in the cluster
+func (c *NomadClient) ListAllocations() ([]types.Allocation, error) {
+	respBody, err := c.makeRequest("GET", "allocations", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var allocations []types.Allocation
+	if err := json.Unmarshal(respBody, &allocations); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+
+	return allocations, nil
+}

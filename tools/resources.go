@@ -342,3 +342,5 @@ func extractIDFromURI(uri, prefix, suffix string) string {
 
 	return uri[start:end]
 }
+
+// Remove duplicate volume handlers as they are already defined in volumes.go

@@ -78,14 +78,14 @@ func ListSentinelPoliciesHandler(client *utils.NomadClient, logger *log.Logger) 
 
 		policiesJSON, err := json.MarshalIndent(policies, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format policy list", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format Sentinel policies", err), nil
 		}
 
 		return mcp.NewToolResultText(string(policiesJSON)), nil
 	}
 }
 
-// GetSentinelPolicyHandler returns a handler for getting a Sentinel policy
+// GetSentinelPolicyHandler returns a handler for getting Sentinel policy details
 func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, ok := request.Params.Arguments["name"].(string)
@@ -101,7 +101,7 @@ func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) fun
 
 		policyJSON, err := json.MarshalIndent(policy, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format policy details", err), nil
+			return mcp.NewToolResultErrorFromErr("Failed to format Sentinel policy", err), nil
 		}
 
 		return mcp.NewToolResultText(string(policyJSON)), nil
@@ -116,37 +116,32 @@ func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		description, _ := request.Params.Arguments["description"].(string)
-
-		scope, ok := request.Params.Arguments["scope"].(string)
-		if !ok || scope == "" {
-			return mcp.NewToolResultError("scope is required"), nil
-		}
-
-		enforcementLevel, ok := request.Params.Arguments["enforcement_level"].(string)
-		if !ok || enforcementLevel == "" {
-			return mcp.NewToolResultError("enforcement_level is required"), nil
-		}
-
-		policyCode, ok := request.Params.Arguments["policy"].(string)
-		if !ok || policyCode == "" {
-			return mcp.NewToolResultError("policy is required"), nil
+		description := ""
+		if d, ok := request.Params.Arguments["description"].(string); ok {
+			description = d
 		}
 
 		policy := types.SentinelPolicy{
-			Name:             name,
-			Description:      description,
-			Scope:            scope,
-			EnforcementLevel: enforcementLevel,
-			Policy:           policyCode,
+			Name:        name,
+			Description: description,
 		}
 
-		if err := client.CreateSentinelPolicy(policy); err != nil {
+		err := client.CreateSentinelPolicy(policy)
+		if err != nil {
 			logger.Printf("Error creating Sentinel policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create Sentinel policy", err), nil
 		}
 
-		return mcp.NewToolResultText(fmt.Sprintf("Sentinel policy %s created successfully", name)), nil
+		result := map[string]string{
+			"message": fmt.Sprintf("Successfully created Sentinel policy %s", name),
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }
 
@@ -158,11 +153,21 @@ func DeleteSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		if err := client.DeleteSentinelPolicy(name); err != nil {
+		err := client.DeleteSentinelPolicy(name)
+		if err != nil {
 			logger.Printf("Error deleting Sentinel policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete Sentinel policy", err), nil
 		}
 
-		return mcp.NewToolResultText(fmt.Sprintf("Sentinel policy %s deleted successfully", name)), nil
+		result := map[string]string{
+			"message": fmt.Sprintf("Successfully deleted Sentinel policy %s", name),
+		}
+
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format result", err), nil
+		}
+
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 }
