@@ -1,4 +1,5 @@
-package tools
+// Package resources provides implementations of MCP resources for Nomad
+package resources
 
 import (
 	"context"
@@ -6,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kocierik/mcp-nomad/utils"
@@ -102,6 +104,46 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 				URI:      "system://info",
 				MIMEType: "application/json",
 				Text:     string(infoJSON),
+			},
+		}, nil
+	})
+
+	// Help documentation resource
+	helpResource := mcp.NewResource(
+		"docs://help",
+		"Help Documentation",
+		mcp.WithResourceDescription("Documentation on how to use the MCP Nomad integration"),
+		mcp.WithMIMEType("text/markdown"),
+	)
+
+	s.AddResource(helpResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		helpText := `# MCP Nomad Integration Help
+
+This integration allows you to interact with your Nomad cluster using the Model Context Protocol.
+
+## Available Resources
+
+- Job specifications: nomad://jobs/{job_id}/spec
+- Node status: nomad://nodes/{node_id}/status
+- Allocation logs: nomad://allocations/{alloc_id}/logs
+- Job history: nomad://jobs/{job_id}/history
+- Node resources: nomad://nodes/{node_id}/resources
+- Allocation status: nomad://allocations/{alloc_id}/status
+- Cluster metrics: nomad://cluster/metrics
+- Evaluations: nomad://evaluations/{eval_id}
+- Service health: nomad://services/{service_name}/health
+- Cluster policies: nomad://policies/list
+
+## Available Tools
+
+Various tools are available for managing Nomad jobs, nodes, allocations, and other cluster resources.
+`
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "docs://help",
+				MIMEType: "text/markdown",
+				Text:     helpText,
 			},
 		}, nil
 	})
@@ -324,23 +366,146 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			},
 		}, nil
 	})
+
+	// Cluster metrics resource
+	clusterMetricsResource := mcp.NewResource(
+		"nomad://cluster/metrics",
+		"Cluster Metrics",
+		mcp.WithResourceDescription("Returns metrics for the entire Nomad cluster"),
+		mcp.WithMIMEType("application/json"),
+	)
+
+	s.AddResource(clusterMetricsResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		// Use the existing method to get cluster info
+		metricsData, err := nomadClient.ListClusterPeers()
+		if err != nil {
+			logger.Printf("Error getting cluster metrics: %v", err)
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "nomad://cluster/metrics",
+				MIMEType: "application/json",
+				Text:     string(metricsData),
+			},
+		}, nil
+	})
+
+	// Evaluation resource
+	evaluationTemplate := mcp.NewResourceTemplate(
+		"nomad://evaluations/{eval_id}",
+		"Evaluation Details",
+		mcp.WithTemplateDescription("Returns details about a specific evaluation"),
+		mcp.WithTemplateMIMEType("application/json"),
+	)
+
+	s.AddResourceTemplate(evaluationTemplate, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		evalID := extractIDFromURI(request.Params.URI, "evaluations/", "")
+		if evalID == "" {
+			return nil, fmt.Errorf("invalid evaluation ID in URI")
+		}
+
+		// We don't have a direct GetEvaluation method, but we can use makeRequest directly
+		path := fmt.Sprintf("evaluation/%s", evalID)
+		evalData, err := nomadClient.MakeRequest("GET", path, nil, nil)
+		if err != nil {
+			logger.Printf("Error getting evaluation: %v", err)
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      request.Params.URI,
+				MIMEType: "application/json",
+				Text:     string(evalData),
+			},
+		}, nil
+	})
+
+	// Service health resource
+	serviceHealthTemplate := mcp.NewResourceTemplate(
+		"nomad://services/{service_name}/health",
+		"Service Health Status",
+		mcp.WithTemplateDescription("Returns health information for a specific service"),
+		mcp.WithTemplateMIMEType("application/json"),
+	)
+
+	s.AddResourceTemplate(serviceHealthTemplate, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		serviceName := extractIDFromURI(request.Params.URI, "services/", "/health")
+		if serviceName == "" {
+			return nil, fmt.Errorf("invalid service name in URI")
+		}
+
+		// Use the MakeRequest method for a direct API call
+		path := fmt.Sprintf("service/%s", serviceName)
+		serviceData, err := nomadClient.MakeRequest("GET", path, nil, nil)
+		if err != nil {
+			logger.Printf("Error getting service health: %v", err)
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      request.Params.URI,
+				MIMEType: "application/json",
+				Text:     string(serviceData),
+			},
+		}, nil
+	})
+
+	// Cluster policies resource
+	clusterPoliciesResource := mcp.NewResource(
+		"nomad://policies/list",
+		"Cluster Policies",
+		mcp.WithResourceDescription("Returns a list of all policies in the cluster"),
+		mcp.WithMIMEType("application/json"),
+	)
+
+	s.AddResource(clusterPoliciesResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		// Use the existing ListACLPolicies method
+		policies, err := nomadClient.ListACLPolicies()
+		if err != nil {
+			logger.Printf("Error getting cluster policies: %v", err)
+			return nil, err
+		}
+
+		policiesJSON, err := json.MarshalIndent(policies, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "nomad://policies/list",
+				MIMEType: "application/json",
+				Text:     string(policiesJSON),
+			},
+		}, nil
+	})
 }
 
 // extractIDFromURI extracts an ID from a URI using the given prefix and suffix
 func extractIDFromURI(uri, prefix, suffix string) string {
 	// Find the start of the ID
-	start := len(prefix)
+	prefixIndex := strings.Index(uri, prefix)
+	if prefixIndex == -1 {
+		return ""
+	}
+	start := prefixIndex + len(prefix)
 	if len(uri) <= start {
 		return ""
 	}
 
 	// Find the end of the ID
-	end := len(uri) - len(suffix)
-	if end <= start {
-		return ""
+	end := len(uri)
+	if suffix != "" {
+		suffixIndex := strings.Index(uri[start:], suffix)
+		if suffixIndex == -1 {
+			return ""
+		}
+		end = start + suffixIndex
 	}
 
 	return uri[start:end]
 }
-
-// Remove duplicate volume handlers as they are already defined in volumes.go

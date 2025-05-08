@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"github.com/kocierik/mcp-nomad/prompts"
+	"github.com/kocierik/mcp-nomad/resources"
 	"github.com/kocierik/mcp-nomad/tools"
 	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/server"
@@ -208,8 +209,9 @@ func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *
 	// Register log tools
 	tools.RegisterLogTools(s, nomadClient, logger)
 
-	// Register resources
-	tools.RegisterResources(s, nomadClient, logger)
+	// Register resources using the resource manager from the resources package
+	resourceManager := resources.NewResourceManager(s, nomadClient, logger)
+	resourceManager.RegisterAll()
 
 	// Register cluster tools
 	tools.RegisterClusterTools(s, nomadClient, logger)
