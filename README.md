@@ -48,6 +48,9 @@
 - List job services
 </details>
 
+
+
+
 <details>
 <summary>Deployment Management</summary>
 
@@ -158,6 +161,16 @@ To use the latest published version with Inspector:
 npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 ```
 
+
+### Options Available
+```
+  -nomad-addr string
+    	Nomad server address (default "http://localhost:4646")
+  -port string
+    	Port for SSE server (default "8080")
+  -transport string
+    	Transport type (stdio or sse) (default "stdio")
+```
 
 ### Environment Variables
 
