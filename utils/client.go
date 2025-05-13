@@ -142,7 +142,7 @@ func (c *NomadClient) makeRequest(method, path string, queryParams map[string]st
 func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, error) {
 	path := "jobs"
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/jobs", namespace)
+		path = fmt.Sprintf("jobs?namespace=%s", namespace)
 	}
 
 	queryParams := make(map[string]string)
@@ -975,7 +975,7 @@ func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, 
 	}
 
 	var response struct {
-		JobID       string                       `json:"JobID"`
+		ID          string                       `json:"ID"`
 		Namespace   string                       `json:"Namespace"`
 		Summary     map[string]types.TaskSummary `json:"Summary"`
 		Children    *types.JobChildrenSummary    `json:"Children"`
@@ -988,7 +988,7 @@ func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, 
 	}
 
 	return types.JobSummary{
-		JobID:       response.JobID,
+		ID:          response.ID,
 		Summary:     response.Summary,
 		Children:    response.Children,
 		CreateIndex: response.CreateIndex,

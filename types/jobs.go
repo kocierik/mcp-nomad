@@ -3,7 +3,7 @@ package types
 
 // JobSummary represents a summary of a Nomad job
 type JobSummary struct {
-	JobID       string                 `json:"JobID"`
+	ID          string                 `json:"ID"`
 	Summary     map[string]TaskSummary `json:"Summary"`
 	Children    *JobChildrenSummary    `json:"Children"`
 	CreateIndex int                    `json:"CreateIndex"`

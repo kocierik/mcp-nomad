@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kocierik/mcp-nomad/types"
 	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -163,20 +164,78 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 			namespace = ns
 		}
 
-		status := ""
+		statusFilter := ""
 		if s, ok := request.Params.Arguments["status"].(string); ok && s != "" {
-			status = s
+			statusFilter = s
 		}
 
-		jobs, err := client.ListJobs(namespace, status)
+		initialJobStubs, err := client.ListJobs(namespace, statusFilter)
 		if err != nil {
-			logger.Printf("Error listing jobs: %v", err)
+			logger.Printf("Error listing initial jobs: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list jobs", err), nil
 		}
 
-		jobsJSON, err := json.MarshalIndent(jobs, "", "  ")
+		type EnhancedJobDetail struct {
+			ID                string                   `json:"ID"`
+			ParentID          string                   `json:"ParentID"`
+			Name              string                   `json:"Name"`
+			Type              string                   `json:"Type"`
+			Priority          int                      `json:"Priority"`
+			Status            string                   `json:"Status"`
+			StatusDescription string                   `json:"StatusDescription"`
+			JobSummary        *types.JobSummaryDetails `json:"JobSummary"`
+			CreateIndex       int                      `json:"CreateIndex"`
+			ModifyIndex       int                      `json:"ModifyIndex"`
+			JobModifyIndex    int                      `json:"JobModifyIndex"`
+		}
+
+		var detailedJobs []EnhancedJobDetail
+
+		for _, stub := range initialJobStubs {
+			jobID := stub.ID
+
+			fullJob, errJob := client.GetJob(jobID, namespace)
+			if errJob != nil {
+				logger.Printf("Error getting full details for job %s in namespace %s: %v. Skipping this job.", jobID, namespace, errJob)
+				continue
+			}
+
+			item := EnhancedJobDetail{
+				ID:                fullJob.ID,
+				ParentID:          fullJob.ParentID,
+				Name:              fullJob.Name,
+				Type:              fullJob.Type,
+				Priority:          fullJob.Priority,
+				Status:            fullJob.Status,
+				StatusDescription: "",
+				CreateIndex:       fullJob.CreateIndex,
+				ModifyIndex:       fullJob.ModifyIndex,
+				JobModifyIndex:    fullJob.JobModifyIndex,
+				JobSummary:        nil,
+			}
+
+			basicSummaryValue, errSummary := client.GetJobSummary(jobID, namespace)
+			if errSummary == nil {
+				detailedSummaryForOutput := types.JobSummaryDetails{
+					JobID:       fullJob.ID,
+					Namespace:   namespace,
+					Summary:     basicSummaryValue.Summary,
+					Children:    basicSummaryValue.Children,
+					CreateIndex: basicSummaryValue.CreateIndex,
+					ModifyIndex: basicSummaryValue.ModifyIndex,
+				}
+				item.JobSummary = &detailedSummaryForOutput
+			} else {
+				logger.Printf("Error getting summary for job %s in namespace %s: %v. JobSummary will be null.", jobID, namespace, errSummary)
+			}
+
+			detailedJobs = append(detailedJobs, item)
+		}
+
+		jobsJSON, err := json.MarshalIndent(detailedJobs, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to format jobs", err), nil
+			logger.Printf("Error marshalling detailed job list: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to format detailed job list", err), nil
 		}
 
 		return mcp.NewToolResultText(string(jobsJSON)), nil
