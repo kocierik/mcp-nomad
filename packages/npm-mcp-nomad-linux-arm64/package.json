@@ -1,6 +1,6 @@
 {
     "name": "@kocierik/mcp-nomad-linux-arm64",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "os": [
       "linux",
       "freebsd"
