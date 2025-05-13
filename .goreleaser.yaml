@@ -68,6 +68,7 @@ changelog:
       - "^fix:"
       - "^chore:"
       - "^refactor:"
+      - "^update:"
       - "^perf:"
       - "^docs:"
       - "^style:"
