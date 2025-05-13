@@ -14,7 +14,7 @@ const BINARY_DISTRIBUTION_PACKAGES = {
   win32_arm64: "mcp-nomad-win32-arm64",
 };
 
-const binaryName = "mcp-nomad-go";
+const binaryName = "mcp-nomad";
 
 const platformSpecificPackageName = BINARY_DISTRIBUTION_PACKAGES[`${process.platform}_${process.arch}`];
 
