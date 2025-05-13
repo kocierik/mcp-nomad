@@ -191,7 +191,25 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("invalid allocation ID in URI")
 		}
 
-		allocLogs, err := nomadClient.GetAllocationLogs(allocID)
+		// Get the allocation to find the task name
+		alloc, err := nomadClient.GetAllocation(allocID)
+		if err != nil {
+			logger.Printf("Error getting allocation: %v", err)
+			return nil, err
+		}
+
+		// Get the first task name from the allocation
+		var taskName string
+		for name := range alloc.TaskStates {
+			taskName = name
+			break
+		}
+
+		if taskName == "" {
+			return nil, fmt.Errorf("no tasks found in allocation")
+		}
+
+		allocLogs, err := nomadClient.GetAllocationLogs(allocID, taskName, "stderr", false, 100, 0)
 		if err != nil {
 			logger.Printf("Error getting allocation logs: %v", err)
 			return nil, err
