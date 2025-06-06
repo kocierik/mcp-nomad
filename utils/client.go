@@ -143,12 +143,12 @@ func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, er
 	path := "jobs"
 
 	queryParams := make(map[string]string)
-    	if namespace != "" && namespace != "default" {
-        	queryParams["namespace"] = namespace  // ✅ FIXED
-    	}
-    	if status != "" {
-        	queryParams["status"] = status
-    	}
+	if namespace != "" && namespace != "default" {
+		queryParams["namespace"] = namespace
+	}
+	if status != "" {
+		queryParams["status"] = status
+	}
 
 	respBody, err := c.makeRequest("GET", path, queryParams, nil)
 	if err != nil {
@@ -166,11 +166,13 @@ func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, er
 // GetJob retrieves a specific job by ID
 func (c *NomadClient) GetJob(jobID, namespace string) (types.Job, error) {
 	path := fmt.Sprintf("job/%s", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s", namespace, jobID)
+		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
 	if err != nil {
 		return types.Job{}, err
 	}
@@ -236,11 +238,11 @@ func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{
 // StopJob stops a job
 func (c *NomadClient) StopJob(jobID, namespace string, purge bool) (map[string]interface{}, error) {
 	path := fmt.Sprintf("job/%s", jobID)
-	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s", namespace, jobID)
-	}
 
-	queryParams := map[string]string{}
+	queryParams := make(map[string]string)
+	if namespace != "" && namespace != "default" {
+		queryParams["namespace"] = namespace
+	}
 	if purge {
 		queryParams["purge"] = "true"
 	}
@@ -261,11 +263,13 @@ func (c *NomadClient) StopJob(jobID, namespace string, purge bool) (map[string]i
 // ListDeployments lists all deployments
 func (c *NomadClient) ListDeployments(namespace string) ([]types.DeploymentSummary, error) {
 	path := "deployments"
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/deployments", namespace)
+		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -875,11 +879,13 @@ func (c *NomadClient) DeleteSentinelPolicy(name string) error {
 // GetJobSubmission retrieves the original job submission
 func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) {
 	path := fmt.Sprintf("job/%s/submission", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/submission", namespace, jobID)
+		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
 	if err != nil {
 		return "", err
 	}
@@ -890,14 +896,20 @@ func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) 
 // ListJobVersions lists all versions of a job
 func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("job/%s/versions", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/versions", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var versions []types.Job
-	err := c.get(path, &versions)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &versions); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return versions, nil
@@ -906,14 +918,20 @@ func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, err
 // ListJobAllocations lists all allocations for a job
 func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Allocation, error) {
 	path := fmt.Sprintf("job/%s/allocations", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/allocations", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var allocations []types.Allocation
-	err := c.get(path, &allocations)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &allocations); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return allocations, nil
@@ -922,14 +940,20 @@ func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Alloc
 // ListJobEvaluations lists all evaluations for a job
 func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evaluation, error) {
 	path := fmt.Sprintf("job/%s/evaluations", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/evaluations", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var evaluations []types.Evaluation
-	err := c.get(path, &evaluations)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &evaluations); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return evaluations, nil
@@ -938,14 +962,20 @@ func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evalu
 // ListJobDeployments lists all deployments for a job
 func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDeployment, error) {
 	path := fmt.Sprintf("job/%s/deployments", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/deployments", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var deployments []types.JobDeployment
-	err := c.get(path, &deployments)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &deployments); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return deployments, nil
@@ -954,14 +984,20 @@ func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDe
 // GetJobDeployment retrieves the most recent deployment for a job
 func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeployment, error) {
 	path := fmt.Sprintf("job/%s/deployment", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/deployment", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return types.JobDeployment{}, err
 	}
 
 	var deployment types.JobDeployment
-	err := c.get(path, &deployment)
-	if err != nil {
-		return types.JobDeployment{}, err
+	if err := json.Unmarshal(respBody, &deployment); err != nil {
+		return types.JobDeployment{}, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return deployment, nil
@@ -970,8 +1006,15 @@ func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeploy
 // GetJobSummary retrieves a summary of a job
 func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, error) {
 	path := fmt.Sprintf("job/%s/summary", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/summary", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return types.JobSummary{}, err
 	}
 
 	var response struct {
@@ -982,7 +1025,7 @@ func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, 
 		CreateIndex int                          `json:"CreateIndex"`
 		ModifyIndex int                          `json:"ModifyIndex"`
 	}
-	err := c.get(path, &response)
+	err = json.Unmarshal(respBody, &response)
 	if err != nil {
 		return types.JobSummary{}, err
 	}
@@ -1106,14 +1149,20 @@ func (c *NomadClient) ForceNewPeriodicInstance(jobID string) error {
 // GetJobScaleStatus retrieves the scale status of a job
 func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScaleStatus, error) {
 	path := fmt.Sprintf("job/%s/scale", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/scale", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return types.JobScaleStatus{}, err
 	}
 
 	var status types.JobScaleStatus
-	err := c.get(path, &status)
-	if err != nil {
-		return types.JobScaleStatus{}, err
+	if err := json.Unmarshal(respBody, &status); err != nil {
+		return types.JobScaleStatus{}, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return status, nil
@@ -1122,8 +1171,10 @@ func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScale
 // ScaleTaskGroup scales a task group
 func (c *NomadClient) ScaleTaskGroup(jobID, group string, count int, namespace string) error {
 	path := fmt.Sprintf("job/%s/scale", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/scale", namespace, jobID)
+		queryParams["namespace"] = namespace
 	}
 
 	request := map[string]interface{}{
@@ -1133,21 +1184,27 @@ func (c *NomadClient) ScaleTaskGroup(jobID, group string, count int, namespace s
 		},
 	}
 
-	_, err := c.makeRequest("POST", path, nil, request)
+	_, err := c.makeRequest("POST", path, queryParams, request)
 	return err
 }
 
 // ListJobServices lists all services for a job
 func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service, error) {
 	path := fmt.Sprintf("job/%s/services", jobID)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/job/%s/services", namespace, jobID)
+		queryParams["namespace"] = namespace
+	}
+
+	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var services []types.Service
-	err := c.get(path, &services)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &services); err != nil {
+		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
 	return services, nil
@@ -1156,11 +1213,11 @@ func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service,
 // ListVariables lists variables in the specified namespace
 func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, perPage int, filter string) ([]types.Variable, error) {
 	path := "vars"
-	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("namespace/%s/vars", namespace)
-	}
 
 	queryParams := make(map[string]string)
+	if namespace != "" && namespace != "default" {
+		queryParams["namespace"] = namespace
+	}
 	if prefix != "" {
 		queryParams["prefix"] = prefix
 	}
@@ -1190,11 +1247,13 @@ func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, 
 // GetVariable retrieves a specific variable by path
 func (c *NomadClient) GetVariable(path, namespace string) (types.Variable, error) {
 	apiPath := fmt.Sprintf("var/%s", path)
+
+	queryParams := make(map[string]string)
 	if namespace != "" && namespace != "default" {
-		apiPath = fmt.Sprintf("namespace/%s/var/%s", namespace, path)
+		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", apiPath, nil, nil)
+	respBody, err := c.makeRequest("GET", apiPath, queryParams, nil)
 	if err != nil {
 		return types.Variable{}, err
 	}
@@ -1240,11 +1299,11 @@ func (c *NomadClient) CreateVariable(variable types.Variable, namespace string, 
 // DeleteVariable deletes a variable by path
 func (c *NomadClient) DeleteVariable(path, namespace string, cas int) error {
 	apiPath := fmt.Sprintf("var/%s", path)
-	if namespace != "" && namespace != "default" {
-		apiPath = fmt.Sprintf("namespace/%s/var/%s", namespace, path)
-	}
 
 	queryParams := make(map[string]string)
+	if namespace != "" && namespace != "default" {
+		queryParams["namespace"] = namespace
+	}
 	if cas > 0 {
 		queryParams["cas"] = strconv.Itoa(cas)
 	}
