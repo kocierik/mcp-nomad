@@ -36,8 +36,13 @@ func RegisterDeploymentTools(s *server.MCPServer, nomadClient *utils.NomadClient
 // ListDeploymentsHandler returns a handler for listing deployments
 func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -59,7 +64,12 @@ func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(
 // GetDeploymentHandler returns a handler for getting deployment details
 func GetDeploymentHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		deploymentID, ok := request.Params.Arguments["deployment_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		deploymentID, ok := arguments["deployment_id"].(string)
 		if !ok || deploymentID == "" {
 			return mcp.NewToolResultError("deployment_id is required"), nil
 		}

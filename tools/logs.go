@@ -43,33 +43,38 @@ func RegisterLogTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 // GetAllocationLogsHandler returns a handler for getting allocation logs
 func GetAllocationLogsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocID, ok := request.Params.Arguments["allocation_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		allocID, ok := arguments["allocation_id"].(string)
 		if !ok || allocID == "" {
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
 
-		task, ok := request.Params.Arguments["task"].(string)
+		task, ok := arguments["task"].(string)
 		if !ok || task == "" {
 			return mcp.NewToolResultError("task is required"), nil
 		}
 
 		logType := "stdout"
-		if lt, ok := request.Params.Arguments["type"].(string); ok && lt != "" {
+		if lt, ok := arguments["type"].(string); ok && lt != "" {
 			logType = lt
 		}
 
 		follow := false
-		if f, ok := request.Params.Arguments["follow"].(bool); ok {
+		if f, ok := arguments["follow"].(bool); ok {
 			follow = f
 		}
 
 		tail := int64(0)
-		if t, ok := request.Params.Arguments["tail"].(float64); ok {
+		if t, ok := arguments["tail"].(float64); ok {
 			tail = int64(t)
 		}
 
 		offset := int64(0)
-		if o, ok := request.Params.Arguments["offset"].(float64); ok {
+		if o, ok := arguments["offset"].(float64); ok {
 			offset = int64(o)
 		}
 

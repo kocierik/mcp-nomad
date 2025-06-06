@@ -52,12 +52,17 @@ func RegisterVolumeTools(s *server.MCPServer, nomadClient *utils.NomadClient, lo
 // ListVolumesHandler returns a handler for listing volumes
 func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		// Get optional parameters
-		nodeID, _ := request.Params.Arguments["node_id"].(string)
-		pluginID, _ := request.Params.Arguments["plugin_id"].(string)
-		nextToken, _ := request.Params.Arguments["next_token"].(string)
-		perPage, _ := request.Params.Arguments["per_page"].(int)
-		filter, _ := request.Params.Arguments["filter"].(string)
+		nodeID, _ := arguments["node_id"].(string)
+		pluginID, _ := arguments["plugin_id"].(string)
+		nextToken, _ := arguments["next_token"].(string)
+		perPage, _ := arguments["per_page"].(int)
+		filter, _ := arguments["filter"].(string)
 
 		// Validate node_id and plugin_id if provided
 		if nodeID != "" && len(nodeID)%2 != 0 {
@@ -87,8 +92,13 @@ func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 // GetVolumeHandler returns a handler for getting volume details
 func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		// Get required parameters
-		volumeID, ok := request.Params.Arguments["volume_id"].(string)
+		volumeID, ok := arguments["volume_id"].(string)
 		if !ok || volumeID == "" {
 			return mcp.NewToolResultError("volume_id is required"), nil
 		}
@@ -112,8 +122,13 @@ func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 // DeleteVolumeHandler returns a handler for deleting a volume
 func DeleteVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		// Get required parameters
-		volumeID, ok := request.Params.Arguments["volume_id"].(string)
+		volumeID, ok := arguments["volume_id"].(string)
 		if !ok || volumeID == "" {
 			return mcp.NewToolResultError("volume_id is required"), nil
 		}

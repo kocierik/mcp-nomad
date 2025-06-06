@@ -68,8 +68,13 @@ func RegisterNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logg
 // ListNodesHandler returns a handler for listing nodes
 func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		status := ""
-		if s, ok := request.Params.Arguments["status"].(string); ok && s != "" {
+		if s, ok := arguments["status"].(string); ok && s != "" {
 			status = s
 		}
 
@@ -91,7 +96,12 @@ func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 // GetNodeHandler returns a handler for getting node details
 func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		nodeID, ok := request.Params.Arguments["node_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		nodeID, ok := arguments["node_id"].(string)
 		if !ok || nodeID == "" {
 			return mcp.NewToolResultError("node_id is required"), nil
 		}
@@ -114,18 +124,23 @@ func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 // DrainNodeHandler returns a handler for draining a node
 func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		nodeID, ok := request.Params.Arguments["node_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		nodeID, ok := arguments["node_id"].(string)
 		if !ok || nodeID == "" {
 			return mcp.NewToolResultError("node_id is required"), nil
 		}
 
 		enable := true
-		if e, ok := request.Params.Arguments["enable"].(bool); ok {
+		if e, ok := arguments["enable"].(bool); ok {
 			enable = e
 		}
 
 		deadline := int64(0)
-		if d, ok := request.Params.Arguments["deadline"].(float64); ok {
+		if d, ok := arguments["deadline"].(float64); ok {
 			deadline = int64(d)
 		}
 
@@ -151,12 +166,17 @@ func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 // EligibilityNodeHandler returns a handler for setting node eligibility
 func EligibilityNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		nodeID, ok := request.Params.Arguments["node_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		nodeID, ok := arguments["node_id"].(string)
 		if !ok || nodeID == "" {
 			return mcp.NewToolResultError("node_id is required"), nil
 		}
 
-		eligible, ok := request.Params.Arguments["eligible"].(string)
+		eligible, ok := arguments["eligible"].(string)
 		if !ok || eligible == "" {
 			return mcp.NewToolResultError("eligible is required"), nil
 		}
