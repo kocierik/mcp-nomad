@@ -141,14 +141,14 @@ func (c *NomadClient) makeRequest(method, path string, queryParams map[string]st
 // ListJobs lists jobs in the specified namespace
 func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, error) {
 	path := "jobs"
-	if namespace != "" && namespace != "default" {
-		path = fmt.Sprintf("jobs?namespace=%s", namespace)
-	}
 
 	queryParams := make(map[string]string)
-	if status != "" {
-		queryParams["status"] = status
-	}
+    	if namespace != "" && namespace != "default" {
+        	queryParams["namespace"] = namespace  // ✅ FIXED
+    	}
+    	if status != "" {
+        	queryParams["status"] = status
+    	}
 
 	respBody, err := c.makeRequest("GET", path, queryParams, nil)
 	if err != nil {
