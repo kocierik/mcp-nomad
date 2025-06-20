@@ -166,7 +166,12 @@ func ListACLTokensHandler(nomadClient *utils.NomadClient, logger *log.Logger) fu
 // GetACLTokenHandler handles the get_acl_token tool request
 func GetACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		accessorID, ok := request.Params.Arguments["accessor_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		accessorID, ok := arguments["accessor_id"].(string)
 		if !ok || accessorID == "" {
 			return mcp.NewToolResultError("accessor_id is required"), nil
 		}
@@ -189,18 +194,23 @@ func GetACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func
 // CreateACLTokenHandler handles the create_acl_token tool request
 func CreateACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		tokenType, ok := request.Params.Arguments["type"].(string)
+		tokenType, ok := arguments["type"].(string)
 		if !ok || tokenType == "" {
 			return mcp.NewToolResultError("type is required"), nil
 		}
 
 		var policies []string
-		if policiesParam, ok := request.Params.Arguments["policies"].([]interface{}); ok {
+		if policiesParam, ok := arguments["policies"].([]interface{}); ok {
 			for _, p := range policiesParam {
 				if policy, ok := p.(string); ok {
 					policies = append(policies, policy)
@@ -209,7 +219,7 @@ func CreateACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) f
 		}
 
 		global := false
-		if globalParam, ok := request.Params.Arguments["global"].(bool); ok {
+		if globalParam, ok := arguments["global"].(bool); ok {
 			global = globalParam
 		}
 
@@ -238,7 +248,12 @@ func CreateACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) f
 // DeleteACLTokenHandler handles the delete_acl_token tool request
 func DeleteACLTokenHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		accessorID, ok := request.Params.Arguments["accessor_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		accessorID, ok := arguments["accessor_id"].(string)
 		if !ok || accessorID == "" {
 			return mcp.NewToolResultError("accessor_id is required"), nil
 		}
@@ -274,7 +289,12 @@ func ListACLPoliciesHandler(nomadClient *utils.NomadClient, logger *log.Logger) 
 // GetACLPolicyHandler handles the get_acl_policy tool request
 func GetACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
@@ -297,18 +317,23 @@ func GetACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) fun
 // CreateACLPolicyHandler handles the create_acl_policy tool request
 func CreateACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		rules, ok := request.Params.Arguments["rules"].(string)
+		rules, ok := arguments["rules"].(string)
 		if !ok || rules == "" {
 			return mcp.NewToolResultError("rules is required"), nil
 		}
 
 		description := ""
-		if desc, ok := request.Params.Arguments["description"].(string); ok {
+		if desc, ok := arguments["description"].(string); ok {
 			description = desc
 		}
 
@@ -336,7 +361,12 @@ func CreateACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) 
 // DeleteACLPolicyHandler handles the delete_acl_policy tool request
 func DeleteACLPolicyHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
@@ -372,7 +402,12 @@ func ListACLRolesHandler(nomadClient *utils.NomadClient, logger *log.Logger) fun
 // GetACLRoleHandler handles the get_acl_role tool request
 func GetACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		id, ok := request.Params.Arguments["id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		id, ok := arguments["id"].(string)
 		if !ok || id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}
@@ -395,17 +430,22 @@ func GetACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(
 // CreateACLRoleHandler handles the create_acl_role tool request
 func CreateACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
 		description := ""
-		if desc, ok := request.Params.Arguments["description"].(string); ok {
+		if desc, ok := arguments["description"].(string); ok {
 			description = desc
 		}
 
-		policiesParam, ok := request.Params.Arguments["policies"]
+		policiesParam, ok := arguments["policies"]
 		if !ok || policiesParam == nil {
 			return mcp.NewToolResultError("Specify at least one policy"), nil
 		}
@@ -466,7 +506,12 @@ func CreateACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) fu
 // DeleteACLRoleHandler handles the delete_acl_role tool request
 func DeleteACLRoleHandler(nomadClient *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		id, ok := request.Params.Arguments["id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		id, ok := arguments["id"].(string)
 		if !ok || id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}

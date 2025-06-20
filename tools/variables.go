@@ -96,28 +96,33 @@ func RegisterVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, 
 // ListVariablesHandler returns a handler for listing variables
 func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
 		prefix := ""
-		if p, ok := request.Params.Arguments["prefix"].(string); ok {
+		if p, ok := arguments["prefix"].(string); ok {
 			prefix = p
 		}
 
 		nextToken := ""
-		if nt, ok := request.Params.Arguments["next_token"].(string); ok {
+		if nt, ok := arguments["next_token"].(string); ok {
 			nextToken = nt
 		}
 
 		perPage := 0
-		if pp, ok := request.Params.Arguments["per_page"].(float64); ok {
+		if pp, ok := arguments["per_page"].(float64); ok {
 			perPage = int(pp)
 		}
 
 		filter := ""
-		if f, ok := request.Params.Arguments["filter"].(string); ok {
+		if f, ok := arguments["filter"].(string); ok {
 			filter = f
 		}
 
@@ -139,13 +144,18 @@ func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(co
 // GetVariableHandler returns a handler for getting variable details
 func GetVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path, ok := request.Params.Arguments["path"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		path, ok := arguments["path"].(string)
 		if !ok || path == "" {
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -167,33 +177,38 @@ func GetVariableHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 // CreateVariableHandler returns a handler for creating a variable
 func CreateVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path, ok := request.Params.Arguments["path"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		path, ok := arguments["path"].(string)
 		if !ok || path == "" {
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		key, ok := request.Params.Arguments["key"].(string)
+		key, ok := arguments["key"].(string)
 		if !ok || key == "" {
 			return mcp.NewToolResultError("key is required"), nil
 		}
 
-		value, ok := request.Params.Arguments["value"].(string)
+		value, ok := arguments["value"].(string)
 		if !ok || value == "" {
 			return mcp.NewToolResultError("value is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
 		cas := 0
-		if c, ok := request.Params.Arguments["cas"].(float64); ok && c > 0 {
+		if c, ok := arguments["cas"].(float64); ok && c > 0 {
 			cas = int(c)
 		}
 
 		lockOp := ""
-		if l, ok := request.Params.Arguments["lock_operation"].(string); ok && l != "" {
+		if l, ok := arguments["lock_operation"].(string); ok && l != "" {
 			lockOp = l
 		}
 
@@ -251,18 +266,23 @@ func CreateVariableHandler(client *utils.NomadClient, logger *log.Logger) func(c
 // DeleteVariableHandler returns a handler for deleting a variable
 func DeleteVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		path, ok := request.Params.Arguments["path"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		path, ok := arguments["path"].(string)
 		if !ok || path == "" {
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
 		cas := 0
-		if c, ok := request.Params.Arguments["cas"].(float64); ok && c > 0 {
+		if c, ok := arguments["cas"].(float64); ok && c > 0 {
 			cas = int(c)
 		}
 

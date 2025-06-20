@@ -88,7 +88,12 @@ func ListSentinelPoliciesHandler(client *utils.NomadClient, logger *log.Logger) 
 // GetSentinelPolicyHandler returns a handler for getting Sentinel policy details
 func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
@@ -111,13 +116,18 @@ func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) fun
 // CreateSentinelPolicyHandler returns a handler for creating a Sentinel policy
 func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
 		description := ""
-		if d, ok := request.Params.Arguments["description"].(string); ok {
+		if d, ok := arguments["description"].(string); ok {
 			description = d
 		}
 
@@ -148,7 +158,12 @@ func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 // DeleteSentinelPolicyHandler returns a handler for deleting a Sentinel policy
 func DeleteSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		name, ok := request.Params.Arguments["name"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		name, ok := arguments["name"].(string)
 		if !ok || name == "" {
 			return mcp.NewToolResultError("name is required"), nil
 		}

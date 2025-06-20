@@ -159,13 +159,18 @@ func RegisterJobTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 // ListJobsHandler returns a handler for listing jobs
 func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
 		statusFilter := ""
-		if s, ok := request.Params.Arguments["status"].(string); ok && s != "" {
+		if s, ok := arguments["status"].(string); ok && s != "" {
 			statusFilter = s
 		}
 
@@ -245,13 +250,18 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 // GetJobHandler returns a handler for getting job details
 func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -273,13 +283,18 @@ func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 // RunJobHandler returns a handler for running a job
 func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobSpec, ok := request.Params.Arguments["job_spec"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobSpec, ok := arguments["job_spec"].(string)
 		if !ok || jobSpec == "" {
 			return mcp.NewToolResultError("job_spec is required"), nil
 		}
 
 		detach := false
-		if d, ok := request.Params.Arguments["detach"].(bool); ok {
+		if d, ok := arguments["detach"].(bool); ok {
 			detach = d
 		}
 
@@ -301,18 +316,23 @@ func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 // StopJobHandler returns a handler for stopping a job
 func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
 		purge := false
-		if p, ok := request.Params.Arguments["purge"].(bool); ok {
+		if p, ok := arguments["purge"].(bool); ok {
 			purge = p
 		}
 
@@ -334,23 +354,28 @@ func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 // ScaleJobHandler returns a handler for scaling a job
 func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		group, ok := request.Params.Arguments["group"].(string)
+		group, ok := arguments["group"].(string)
 		if !ok || group == "" {
 			return mcp.NewToolResultError("group is required"), nil
 		}
 
-		count, ok := request.Params.Arguments["count"].(float64)
+		count, ok := arguments["count"].(float64)
 		if !ok {
 			return mcp.NewToolResultError("count is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -376,13 +401,18 @@ func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context
 // GetJobAllocationsHandler returns a handler for getting job allocations
 func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -404,13 +434,18 @@ func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 // GetJobEvaluationsHandler returns a handler for getting job evaluations
 func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -432,13 +467,18 @@ func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 // GetJobDeploymentsHandler returns a handler for getting job deployments
 func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -460,13 +500,18 @@ func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) fun
 // GetJobSummaryHandler returns a handler for getting job summary
 func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 
@@ -488,13 +533,18 @@ func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(co
 // GetJobServicesHandler returns a handler for getting job services
 func GetJobServicesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		jobID, ok := request.Params.Arguments["job_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		jobID, ok := arguments["job_id"].(string)
 		if !ok || jobID == "" {
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
 		namespace := "default"
-		if ns, ok := request.Params.Arguments["namespace"].(string); ok && ns != "" {
+		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
 			namespace = ns
 		}
 

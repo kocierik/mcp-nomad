@@ -67,7 +67,12 @@ func ListAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(
 // GetAllocationHandler returns a handler for getting allocation details
 func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocID, ok := request.Params.Arguments["allocation_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		allocID, ok := arguments["allocation_id"].(string)
 		if !ok || allocID == "" {
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
@@ -90,7 +95,12 @@ func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(co
 // StopAllocationHandler returns a handler for stopping an allocation
 func StopAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocationID, ok := request.Params.Arguments["allocation_id"].(string)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		allocationID, ok := arguments["allocation_id"].(string)
 		if !ok || allocationID == "" {
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
