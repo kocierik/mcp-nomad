@@ -166,7 +166,7 @@ func main() {
 
 		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:    fmt.Sprintf("%s:%s", nomadURL.Hostname(), *port),
+			Addr:    fmt.Sprintf("%s:%s", "0.0.0.0", *port),
 			Handler: originValidationMiddleware(sseServer),
 		}
 
