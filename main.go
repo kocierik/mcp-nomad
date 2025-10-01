@@ -1,5 +1,5 @@
 // Package mcp-nomad provides a Model Context Protocol (MCP) server for interacting with HashiCorp Nomad.
-// It implements both stdio and SSE transports, allowing for easy integration with various clients.
+// It implements stdio, SSE, and StreamableHTTP transports, allowing for easy integration with various clients.
 //
 // Features:
 // - Job management (list, get, run, stop)
@@ -22,6 +22,9 @@
 //
 //	// Start the server with SSE transport
 //	go run main.go -transport=sse -port=8080
+//
+//	// Start the server with StreamableHTTP transport
+//	go run main.go -transport=streamable-http -port=8080
 package main
 
 import (
@@ -104,14 +107,14 @@ func originValidationMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	// Define flags
-	transport := flag.String("transport", "stdio", "Transport type (stdio or sse)")
-	port := flag.String("port", "8080", "Port for SSE server")
+	transport := flag.String("transport", "stdio", "Transport type (stdio, sse, or streamable-http)")
+	port := flag.String("port", "8080", "Port for HTTP server")
 	// nomadAddr := flag.String("nomad-addr", "http://localhost:4646", "Nomad server address")
 	flag.Parse()
 
 	nomadAddr := os.Getenv("NOMAD_ADDR")
 	if nomadAddr == "" {
-		nomadAddr = "http://localhost:4646"
+		nomadAddr = "http://0.0.0.0:4646"
 	}
 
 	// Get token from environment
@@ -174,8 +177,31 @@ func main() {
 		if err := httpServer.ListenAndServe(); err != nil {
 			logger.Fatalf("Server error: %v", err)
 		}
+	case "streamable-http":
+		// Parse the Nomad address to get the host
+		nomadURL, err := url.Parse(nomadAddr)
+		if err != nil {
+			logger.Fatalf("Invalid nomad-addr: %v", err)
+		}
+		logger.Printf("Nomad URL: %s", nomadURL.Hostname())
+
+		// Create StreamableHTTP server
+		streamableServer := server.NewStreamableHTTPServer(s,
+			server.WithHTTPContextFunc(authFromRequest),
+		)
+
+		// Create HTTP server with origin validation middleware
+		httpServer := &http.Server{
+			Addr:    fmt.Sprintf("%s:%s", "0.0.0.0", *port),
+			Handler: originValidationMiddleware(streamableServer),
+		}
+
+		logger.Printf("StreamableHTTP server listening on %s", httpServer.Addr)
+		if err := httpServer.ListenAndServe(); err != nil {
+			logger.Fatalf("Server error: %v", err)
+		}
 	default:
-		logger.Fatalf("Invalid transport type: %s. Must be 'stdio' or 'sse'", *transport)
+		logger.Fatalf("Invalid transport type: %s. Must be 'stdio', 'sse', or 'streamable-http'", *transport)
 	}
 }
 

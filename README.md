@@ -34,9 +34,9 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
   -nomad-addr string
     	Nomad server address (default "http://localhost:4646")
   -port string
-    	Port for SSE server (default "8080")
+    	Port for HTTP server (default "8080")
   -transport string
-    	Transport type (stdio or sse) (default "stdio")
+    	Transport type (stdio, sse, or streamable-http) (default "stdio")
 ```
 
 ### Environment Variables

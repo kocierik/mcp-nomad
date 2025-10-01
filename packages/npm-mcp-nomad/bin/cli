@@ -28,6 +28,12 @@ function getBinaryPath() {
 
 console.log(getBinaryPath());
 
-childProcess.execFileSync(getBinaryPath(), process.argv.slice(2), {
+// Add default transport for inspector compatibility
+const args = process.argv.slice(2);
+if (args.length === 0) {
+  args.push("-transport=streamable-http");
+}
+
+childProcess.execFileSync(getBinaryPath(), args, {
   stdio: "inherit",
 });
