@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-win32-x64",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "os": [
     "win32"
   ],
