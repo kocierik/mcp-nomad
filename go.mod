@@ -2,7 +2,7 @@ module github.com/kocierik/mcp-nomad
 
 go 1.23
 
-require github.com/mark3labs/mcp-go v0.41.0
+require github.com/mark3labs/mcp-go v0.41.1
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
