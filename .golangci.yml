@@ -1,0 +1,191 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - misspell
+    - gosec
+    - gocyclo
+    - goconst
+    - gocritic
+    - godot
+    - gofumpt
+    - revive
+    - mnd
+    - gocognit
+    - nakedret
+    - prealloc
+    - stylecheck
+    - typecheck
+    - whitespace
+
+linters-settings:
+  gocyclo:
+    min-complexity: 20
+  goconst:
+    min-len: 3
+    min-occurrences: 5
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+      - hugeParam
+      - paramTypeCombine
+      - emptyStringTest
+  mnd:
+    settings:
+      mnd:
+        checks: argument,case,condition,operation,return,assign
+  gocognit:
+    min-complexity: 30
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  revive:
+    min-confidence: 0
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+  stylecheck:
+    go: "1.23"
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - mnd
+        - gocognit
+        - gocyclo
+        - errcheck
+        - goconst
+        - godot
+        - gocritic
+        - revive
+    - path: test/
+      linters:
+        - mnd
+        - gocognit
+        - gocyclo
+        - gosec
+        - errcheck
+        - goconst
+        - godot
+        - gocritic
+        - revive
+    - path: mocks/
+      linters:
+        - mnd
+        - gocognit
+        - gocyclo
+        - gosec
+        - unused
+        - errcheck
+        - goconst
+        - godot
+        - gocritic
+        - revive
+    - text: "should have a package comment"
+      linters:
+        - revive
+    - text: "exported function should have comment"
+      linters:
+        - revive
+    - text: "exported type should have comment"
+      linters:
+        - revive
+    - text: "exported var should have comment"
+      linters:
+        - revive
+    - text: "Error return value of.*is not checked"
+      linters:
+        - errcheck
+    - text: "cognitive complexity.*is high"
+      linters:
+        - gocognit
+    - text: "string.*has.*occurrences, make it a constant"
+      linters:
+        - goconst
+    - text: "hugeParam.*is heavy"
+      linters:
+        - gocritic
+    - text: "paramTypeCombine.*could be replaced"
+      linters:
+        - gocritic
+    - text: "emptyStringTest.*replace.*with"
+      linters:
+        - gocritic
+    - text: "commentFormatting.*put a space"
+      linters:
+        - gocritic
+    - text: "Comment should end in a period"
+      linters:
+        - godot
+    - text: "File is not properly formatted"
+      linters:
+        - gofumpt
+    - text: "unnecessary leading newline"
+      linters:
+        - whitespace
+    - path: prompts/
+      linters:
+        - gocyclo
+        - gocognit
+    - path: tools/
+      linters:
+        - gocyclo
+        - gocognit
+        - mnd
+    - path: utils/
+      linters:
+        - mnd
+    - path: main.go
+      linters:
+        - mnd
+
+severity:
+  default-severity: error
+  rules:
+    - linters: [gosec]
+      severity: warning
+    - linters: [misspell]
+      severity: warning

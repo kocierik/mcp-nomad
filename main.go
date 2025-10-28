@@ -36,6 +36,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kocierik/mcp-nomad/prompts"
 	"github.com/kocierik/mcp-nomad/tools"
@@ -169,8 +170,12 @@ func main() {
 
 		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:    fmt.Sprintf("%s:%s", "0.0.0.0", *port),
-			Handler: originValidationMiddleware(sseServer),
+			Addr:              fmt.Sprintf("%s:%s", "0.0.0.0", *port),
+			Handler:           originValidationMiddleware(sseServer),
+			ReadHeaderTimeout: 30 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
 		}
 
 		logger.Printf("SSE server listening on %s", httpServer.Addr)
@@ -192,8 +197,12 @@ func main() {
 
 		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:    fmt.Sprintf("%s:%s", "0.0.0.0", *port),
-			Handler: originValidationMiddleware(streamableServer),
+			Addr:              fmt.Sprintf("%s:%s", "0.0.0.0", *port),
+			Handler:           originValidationMiddleware(streamableServer),
+			ReadHeaderTimeout: 30 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
 		}
 
 		logger.Printf("StreamableHTTP server listening on %s", httpServer.Addr)
