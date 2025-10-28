@@ -8,8 +8,8 @@ import (
 type TaskState struct {
 	State      string      `json:"State"`
 	Failed     bool        `json:"Failed"`
-	StartedAt  time.Time   `json:"StartedAt"`
-	FinishedAt time.Time   `json:"FinishedAt"`
+	StartedAt  *time.Time  `json:"StartedAt"`
+	FinishedAt *time.Time  `json:"FinishedAt"`
 	Events     []TaskEvent `json:"Events"`
 }
 
