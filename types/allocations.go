@@ -30,10 +30,10 @@ type Allocation struct {
 
 // AllocDeploymentStatus represents the deployment status of an allocation
 type AllocDeploymentStatus struct {
-	Healthy     bool      `json:"Healthy"`
-	Timestamp   time.Time `json:"Timestamp"`
-	Canary      bool      `json:"Canary"`
-	ModifyIndex uint64    `json:"ModifyIndex"`
+	Healthy     bool       `json:"Healthy"`
+	Timestamp   *time.Time `json:"Timestamp"`
+	Canary      bool       `json:"Canary"`
+	ModifyIndex uint64     `json:"ModifyIndex"`
 }
 
 // RescheduleTracker represents the reschedule tracking information for an allocation
@@ -43,7 +43,7 @@ type RescheduleTracker struct {
 
 // RescheduleEvent represents a reschedule event
 type RescheduleEvent struct {
-	RescheduleTime time.Time `json:"RescheduleTime"`
-	PrevAllocID    string    `json:"PrevAllocID"`
-	PrevNodeID     string    `json:"PrevNodeID"`
+	RescheduleTime *time.Time `json:"RescheduleTime"`
+	PrevAllocID    string     `json:"PrevAllocID"`
+	PrevNodeID     string     `json:"PrevNodeID"`
 }
