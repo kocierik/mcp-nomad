@@ -1,9 +1,9 @@
 module github.com/kocierik/mcp-nomad
 
-go 1.23.0
+go 1.25.5
 
 require (
-	github.com/mark3labs/mcp-go v0.48.0
+	github.com/mark3labs/mcp-go v0.49.0
 	github.com/stretchr/testify v1.11.1
 )
 
