@@ -43,8 +43,11 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 
 - `NOMAD_ADDR`: Nomad HTTP API address (default: http://localhost:4646)
 - `NOMAD_TOKEN`: Nomad ACL token (optional)
- 
+- `NOMAD_REGION`: forwarded as the REST `region` query parameter when callers do not override it (multi-region clusters)
+- `NOMAD_NAMESPACE`: default namespace for tools that accept an optional namespace when the tool omits it
+- TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME` (see `utils/client.go` / `buildTLSConfig`)
 
+The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
 
 ## Use With Claude
 

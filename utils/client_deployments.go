@@ -13,9 +13,7 @@ func (c *NomadClient) ListDeployments(ctx context.Context, namespace string) ([]
 	path := "deployments"
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -52,9 +50,7 @@ func (c *NomadClient) ListJobDeployments(ctx context.Context, jobID, namespace s
 	path := fmt.Sprintf("job/%s/deployments", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -74,9 +70,7 @@ func (c *NomadClient) GetJobDeployment(ctx context.Context, jobID, namespace str
 	path := fmt.Sprintf("job/%s/deployment", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {

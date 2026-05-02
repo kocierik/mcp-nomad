@@ -41,10 +41,7 @@ func ListDeploymentsHandler(client utils.DeploymentAPI, logger *log.Logger) func
 			return mcp.NewToolResultError("Invalid arguments"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		deployments, err := client.ListDeployments(ctx, namespace)
 		if err != nil {

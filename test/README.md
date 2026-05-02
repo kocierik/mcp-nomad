@@ -102,6 +102,7 @@ go test -v -bench=. ./test/...
 
 - `NOMAD_ADDR`: Nomad server address (default: http://localhost:4646)
 - `NOMAD_REGION`: forwarded as the `region` query parameter on REST calls when not already set (matches Nomad CLI semantics for multi-region clusters)
+- `NOMAD_NAMESPACE`: default namespace for MCP tools when the tool does not send a non-empty `namespace` argument (`utils.EffectiveToolNamespace`)
 - `NOMAD_TOKEN`: Nomad ACL token (optional)
 - `SKIP_INTEGRATION`: Skip integration tests (default: false)
 

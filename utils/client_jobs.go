@@ -13,9 +13,7 @@ func (c *NomadClient) ListJobs(ctx context.Context, namespace, status string) ([
 	path := "jobs"
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 	if status != "" {
 		queryParams["status"] = status
 	}
@@ -38,9 +36,7 @@ func (c *NomadClient) GetJob(ctx context.Context, jobID, namespace string) (type
 	path := fmt.Sprintf("job/%s", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -110,9 +106,7 @@ func (c *NomadClient) StopJob(ctx context.Context, jobID, namespace string, purg
 	path := fmt.Sprintf("job/%s", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 	if purge {
 		queryParams["purge"] = "true"
 	}
@@ -133,9 +127,7 @@ func (c *NomadClient) StopJob(ctx context.Context, jobID, namespace string, purg
 // GetJobVersions returns the versions of a job
 func (c *NomadClient) GetJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("/v1/job/%s/versions", jobID)
-	if namespace != "" {
-		path = fmt.Sprintf("%s?namespace=%s", path, namespace)
-	}
+	path += JobVersionsNamespaceQuerySuffix(namespace)
 
 	var versions []types.Job
 	err := c.get(ctx, path, &versions)
@@ -151,9 +143,7 @@ func (c *NomadClient) GetJobSubmission(ctx context.Context, jobID, namespace str
 	path := fmt.Sprintf("job/%s/submission", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -168,9 +158,7 @@ func (c *NomadClient) ListJobVersions(ctx context.Context, jobID, namespace stri
 	path := fmt.Sprintf("job/%s/versions", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -190,9 +178,7 @@ func (c *NomadClient) ListJobAllocations(ctx context.Context, jobID, namespace s
 	path := fmt.Sprintf("job/%s/allocations", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -212,9 +198,7 @@ func (c *NomadClient) ListJobEvaluations(ctx context.Context, jobID, namespace s
 	path := fmt.Sprintf("job/%s/evaluations", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -341,9 +325,7 @@ func (c *NomadClient) GetJobScaleStatus(ctx context.Context, jobID, namespace st
 	path := fmt.Sprintf("job/%s/scale", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -363,9 +345,7 @@ func (c *NomadClient) ScaleTaskGroup(ctx context.Context, jobID, group string, c
 	path := fmt.Sprintf("job/%s/scale", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	request := map[string]interface{}{
 		"Count": count,
@@ -383,9 +363,7 @@ func (c *NomadClient) ListJobServices(ctx context.Context, jobID, namespace stri
 	path := fmt.Sprintf("job/%s/services", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
@@ -405,9 +383,7 @@ func (c *NomadClient) GetJobSummary(ctx context.Context, jobID, namespace string
 	path := fmt.Sprintf("job/%s/summary", jobID)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {

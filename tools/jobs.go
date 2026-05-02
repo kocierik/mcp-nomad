@@ -164,10 +164,7 @@ func ListJobsHandler(client utils.JobAPI, logger *log.Logger) func(context.Conte
 			return mcp.NewToolResultError("Invalid arguments"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		statusFilter := ""
 		if s, ok := arguments["status"].(string); ok && s != "" {
@@ -260,10 +257,7 @@ func GetJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Context
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		job, err := client.GetJob(ctx, jobID, namespace)
 		if err != nil {
@@ -326,10 +320,7 @@ func StopJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Contex
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		purge := false
 		if p, ok := arguments["purge"].(bool); ok {
@@ -374,10 +365,7 @@ func ScaleJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Conte
 			return mcp.NewToolResultError("count is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		err := client.ScaleTaskGroup(ctx, jobID, group, int(count), namespace)
 		if err != nil {
@@ -411,10 +399,7 @@ func GetJobAllocationsHandler(client utils.JobAPI, logger *log.Logger) func(cont
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		allocations, err := client.ListJobAllocations(ctx, jobID, namespace)
 		if err != nil {
@@ -444,10 +429,7 @@ func GetJobEvaluationsHandler(client utils.JobAPI, logger *log.Logger) func(cont
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		evaluations, err := client.ListJobEvaluations(ctx, jobID, namespace)
 		if err != nil {
@@ -477,10 +459,7 @@ func GetJobDeploymentsHandler(client utils.JobAPI, logger *log.Logger) func(cont
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		deployments, err := client.ListJobDeployments(ctx, jobID, namespace)
 		if err != nil {
@@ -510,10 +489,7 @@ func GetJobSummaryHandler(client utils.JobAPI, logger *log.Logger) func(context.
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		summary, err := client.GetJobSummary(ctx, jobID, namespace)
 		if err != nil {
@@ -543,10 +519,7 @@ func GetJobServicesHandler(client utils.JobAPI, logger *log.Logger) func(context
 			return mcp.NewToolResultError("job_id is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		services, err := client.ListJobServices(ctx, jobID, namespace)
 		if err != nil {

@@ -101,10 +101,7 @@ func ListVariablesHandler(client utils.VariableAPI, logger *log.Logger) func(con
 			return mcp.NewToolResultError("Invalid arguments"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		prefix := ""
 		if p, ok := arguments["prefix"].(string); ok {
@@ -154,10 +151,7 @@ func GetVariableHandler(client utils.VariableAPI, logger *log.Logger) func(conte
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		variable, err := client.GetVariable(ctx, path, namespace)
 		if err != nil {
@@ -197,10 +191,7 @@ func CreateVariableHandler(client utils.VariableAPI, logger *log.Logger) func(co
 			return mcp.NewToolResultError("value is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		cas := 0
 		if c, ok := arguments["cas"].(float64); ok && c > 0 {
@@ -276,10 +267,7 @@ func DeleteVariableHandler(client utils.VariableAPI, logger *log.Logger) func(co
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		namespace := "default"
-		if ns, ok := arguments["namespace"].(string); ok && ns != "" {
-			namespace = ns
-		}
+		namespace := utils.EffectiveToolNamespace(arguments)
 
 		cas := 0
 		if c, ok := arguments["cas"].(float64); ok && c > 0 {

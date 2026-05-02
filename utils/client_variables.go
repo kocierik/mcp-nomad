@@ -14,9 +14,7 @@ func (c *NomadClient) ListVariables(ctx context.Context, namespace, prefix strin
 	path := "vars"
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 	if prefix != "" {
 		queryParams["prefix"] = prefix
 	}
@@ -48,9 +46,7 @@ func (c *NomadClient) GetVariable(ctx context.Context, path, namespace string) (
 	apiPath := fmt.Sprintf("var/%s", path)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	respBody, err := c.makeRequest(ctx, "GET", apiPath, queryParams, nil)
 	if err != nil {
@@ -87,9 +83,7 @@ func (c *NomadClient) CreateVariable(ctx context.Context, variable types.Variabl
 
 	// Add namespace as query parameter if provided
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 
 	_, err := c.makeRequest(ctx, "PUT", apiPath, queryParams, requestBody)
 	return err
@@ -100,9 +94,7 @@ func (c *NomadClient) DeleteVariable(ctx context.Context, path, namespace string
 	apiPath := fmt.Sprintf("var/%s", path)
 
 	queryParams := make(map[string]string)
-	if namespace != "" && namespace != "default" {
-		queryParams["namespace"] = namespace
-	}
+	AddNomadNamespaceQuery(queryParams, namespace)
 	if cas > 0 {
 		queryParams["cas"] = strconv.Itoa(cas)
 	}
