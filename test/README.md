@@ -158,7 +158,7 @@ test.AssertJSONEqual(t, expectedJSON, actualJSON)
 Tests are automatically run on:
 - Push to main/develop branches
 - Pull requests
-- Multiple Go versions (1.21, 1.22, 1.23)
+- Go **1.26.2** only (pinned in `go.mod` and `.github/workflows/test.yml` for a consistent toolchain in CI/releases)
 
 ### GitHub Actions Workflow
 

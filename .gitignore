@@ -27,5 +27,6 @@ go.work.sum
 mcp-nomad 
 dist
 **/packages/bin/mcp***
+packages/.npmrc-backups
 update.sh
 tag.sh

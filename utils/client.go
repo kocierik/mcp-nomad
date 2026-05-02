@@ -1336,7 +1336,9 @@ func (c *NomadClient) ListAllocations() ([]types.Allocation, error) {
 // buildTLSConfig constructs a *tls.Config from the standard NOMAD_* TLS environment
 // variables, matching the behavior of the official Nomad CLI and Go SDK.
 func buildTLSConfig() *tls.Config {
-	cfg := &tls.Config{}
+	cfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 
 	if caFile := os.Getenv("NOMAD_CACERT"); caFile != "" {
 		if caPEM, err := os.ReadFile(caFile); err == nil {

@@ -1,6 +1,47 @@
 #!/bin/bash
 
 set -e
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$REPO_ROOT"
+
+NPM_PACKAGES=(
+  npm-mcp-nomad-darwin-x64
+  npm-mcp-nomad-darwin-arm64
+  npm-mcp-nomad-linux-x64
+  npm-mcp-nomad-linux-arm64
+  npm-mcp-nomad-win32-x64
+  npm-mcp-nomad-win32-arm64
+  npm-mcp-nomad
+)
+
+NPMRC_BACKUP_DIR="$REPO_ROOT/packages/.npmrc-backups"
+restore_npmrc() {
+  if [ "${RESTORE_NPMRC:-0}" = "1" ] && [ -d "$NPMRC_BACKUP_DIR" ]; then
+    for pkg in "${NPM_PACKAGES[@]}"; do
+      [ -f "$NPMRC_BACKUP_DIR/$pkg" ] && mv "$NPMRC_BACKUP_DIR/$pkg" "$REPO_ROOT/packages/$pkg/.npmrc"
+    done
+    rmdir "$NPMRC_BACKUP_DIR" 2>/dev/null || true
+  fi
+}
+trap restore_npmrc EXIT
+
+# Fail early if not logged in to npm (avoids confusing 404 after build)
+if ! npm whoami &>/dev/null; then
+  echo "Error: Not logged in to npm. Run 'npm login' or set a valid NPM token."
+  exit 1
+fi
+
+# Package dirs have .npmrc with _authToken=${NPM_TOKEN}. When NPM_TOKEN is not set (local publish),
+# move .npmrc out of package dirs so npm uses ~/.npmrc and the backup is not included in the tarball.
+# Note: npm may require 2FA or a granular token with "Bypass 2FA" to publish; use NPM_TOKEN in that case.
+if [ -z "${NPM_TOKEN:-}" ]; then
+  echo "NPM_TOKEN not set: using npm login credentials (hiding package .npmrc for publish)."
+  RESTORE_NPMRC=1
+  mkdir -p "$NPMRC_BACKUP_DIR"
+  for pkg in "${NPM_PACKAGES[@]}"; do
+    [ -f "packages/$pkg/.npmrc" ] && mv "packages/$pkg/.npmrc" "$NPMRC_BACKUP_DIR/$pkg"
+  done
+fi
 
 chmod +x ./packages/build.sh
 ./packages/build.sh
@@ -27,25 +68,7 @@ cp dist/mcp-nomad_windows_amd64_v1/mcp-nomad.exe ./packages/npm-mcp-nomad-win32-
 mkdir -p ./packages/npm-mcp-nomad-win32-arm64/bin
 cp dist/mcp-nomad_windows_arm64_v8.0/mcp-nomad.exe ./packages/npm-mcp-nomad-win32-arm64/bin/mcp-nomad.exe
 
-cd packages/npm-mcp-nomad-darwin-x64
-npm publish --access public
-
-cd ../npm-mcp-nomad-darwin-arm64
-npm publish --access public
-
-cd ../npm-mcp-nomad-linux-x64
-npm publish --access public
-
-cd ../npm-mcp-nomad-linux-arm64
-npm publish --access public
-
-cd ../npm-mcp-nomad-win32-x64
-npm publish --access public
-
-cd ../npm-mcp-nomad-win32-arm64
-npm publish --access public
-
-cd ../npm-mcp-nomad
-npm publish --access public
-
-cd -
+for pkg in "${NPM_PACKAGES[@]}"; do
+  cd "$REPO_ROOT/packages/$pkg"
+  npm publish --access public
+done

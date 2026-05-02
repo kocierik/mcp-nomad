@@ -1,4 +1,6 @@
 run:
+  # Match go.mod toolchain (see golangci-lint deprecation: prefer run.go vs linters.stylecheck.go).
+  go: "1.26.2"
   timeout: 5m
   tests: true
   modules-download-mode: readonly
@@ -52,9 +54,13 @@ linters-settings:
       - paramTypeCombine
       - emptyStringTest
   mnd:
-    settings:
-      mnd:
-        checks: argument,case,condition,operation,return,assign
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
   gocognit:
     min-complexity: 30
   nakedret:
@@ -64,7 +70,6 @@ linters-settings:
     range-loops: true
     for-loops: false
   revive:
-    min-confidence: 0
     rules:
       - name: blank-imports
       - name: context-as-argument
@@ -86,7 +91,6 @@ linters-settings:
       - name: indent-error-flow
       - name: errorf
   stylecheck:
-    go: "1.23"
     checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
 
 issues:

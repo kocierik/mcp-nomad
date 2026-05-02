@@ -37,10 +37,11 @@ for target in "${!TARGETS[@]}"; do
 
     echo "Building for $GOOS/$GOARCH..."
     mkdir -p "$OUTPUT_DIR"
+    # MUST pass GOOS/GOARCH into the child process — shell assignments are not inherited by default.
     if [[ "$GOOS" == "windows" ]]; then
-        go build -o "${OUTPUT_DIR}/${BINARY_NAME}.exe" .
+        GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -o "${OUTPUT_DIR}/${BINARY_NAME}.exe" .
     else
-        go build -o "${OUTPUT_DIR}/${BINARY_NAME}" .
+        GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -o "${OUTPUT_DIR}/${BINARY_NAME}" .
     fi
 done
 
