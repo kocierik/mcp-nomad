@@ -26,7 +26,7 @@ go mod tidy
 Then check if the server is working by running:
 
 ```bash
-go run main.go -transport=stdio
+go run .
 ```
 
 Once built, you can proceed to add configuration to `claude_desktop_config.json` file:

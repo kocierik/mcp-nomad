@@ -28,6 +28,15 @@ To use the latest published version with Inspector:
 npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 ```
 
+### Inspector with a local HTTP server (optional)
+
+Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, start the binary in another terminal first:
+
+```bash
+go run . -transport=streamable-http -port=8080
+```
+
+Then use **`http://localhost:8080/mcp`** in the Inspector. For `-transport=sse`, use **`http://localhost:8080/sse`**.
 
 ### Options Available
 ```

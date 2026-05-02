@@ -248,7 +248,7 @@ docker-build: ## Build Docker image
 
 docker-run: docker-build ## Build and run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
-	@docker run --rm -p 8080:8080 mcp-nomad:latest
+	@docker run --rm -p 8080:8080 mcp-nomad:latest -transport=streamable-http
 
 docker-push: docker-build ## Push Docker image to registry
 	@echo "$(BLUE)Pushing Docker image...$(NC)"

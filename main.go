@@ -18,12 +18,12 @@
 //	import "github.com/kocierik/mcp-nomad"
 //
 //	// Start the server with stdio transport [default]
-//	go run main.go -transport=stdio
+//	go run main.go
 //
-//	// Start the server with SSE transport
+//	// Legacy SSE transport
 //	go run main.go -transport=sse -port=8080
 //
-//	// Start the server with StreamableHTTP transport
+//	// StreamableHTTP (Inspector / HTTP clients — path /mcp by default)
 //	go run main.go -transport=streamable-http -port=8080
 package main
 

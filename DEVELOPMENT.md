@@ -9,9 +9,10 @@ export NOMAD_TOKEN=your-token-here
 ```
 
 ### MCP Server
+The binary does not read `MCP_TRANSPORT` from `.env`; use CLI flags (default **`stdio`**). HTTP example:
+
 ```bash
-export MCP_TRANSPORT=stdio  # or sse, streamable-http
-export MCP_PORT=8080
+./mcp-nomad -transport=streamable-http -port=8080
 ```
 
 ### Development
@@ -35,13 +36,16 @@ make nomad-status
 
 ### 3. Run MCP Server
 ```bash
-# Stdio transport (for CLI tools)
+# Default transport is stdio (same as plain `make run`)
+make run
+
+# Explicit stdio
 make run-stdio
 
-# SSE transport (for web clients)
+# Legacy SSE transport
 make run-sse
 
-# HTTP transport (for HTTP clients)
+# Streamable HTTP (Inspector / `:8080/mcp`)
 make run-http
 ```
 
