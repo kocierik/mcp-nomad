@@ -49,8 +49,9 @@ type MockNomadClient struct {
 	ListNamespacesFunc          func(context.Context) ([]types.Namespace, error)
 	CreateNamespaceFunc         func(context.Context, types.Namespace) error
 	DeleteNamespaceFunc         func(context.Context, string) error
-	ListAllocationsFunc         func(context.Context) ([]types.Allocation, error)
+	ListAllocationsFunc         func(context.Context, string, string) ([]types.Allocation, error)
 	GetAllocationFunc           func(context.Context, string) (types.Allocation, error)
+	StopAllocationFunc          func(context.Context, string) error
 	GetAllocationLogsFunc       func(context.Context, string, string, string, bool, int64, int64) (string, error)
 	ListVariablesFunc           func(context.Context, string, string, string, int, string) ([]types.Variable, error)
 	GetVariableFunc             func(context.Context, string, string) (types.Variable, error)
@@ -240,9 +241,9 @@ func (m *MockNomadClient) DeleteNamespace(ctx context.Context, name string) erro
 	return nil
 }
 
-func (m *MockNomadClient) ListAllocations(ctx context.Context) ([]types.Allocation, error) {
+func (m *MockNomadClient) ListAllocations(ctx context.Context, namespace, jobID string) ([]types.Allocation, error) {
 	if m.ListAllocationsFunc != nil {
-		return m.ListAllocationsFunc(ctx)
+		return m.ListAllocationsFunc(ctx, namespace, jobID)
 	}
 	return []types.Allocation{}, nil
 }
@@ -252,6 +253,13 @@ func (m *MockNomadClient) GetAllocation(ctx context.Context, allocID string) (ty
 		return m.GetAllocationFunc(ctx, allocID)
 	}
 	return types.Allocation{}, nil
+}
+
+func (m *MockNomadClient) StopAllocation(ctx context.Context, allocID string) error {
+	if m.StopAllocationFunc != nil {
+		return m.StopAllocationFunc(ctx, allocID)
+	}
+	return nil
 }
 
 func (m *MockNomadClient) MakeRequest(ctx context.Context, method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {

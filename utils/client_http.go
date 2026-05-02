@@ -87,8 +87,14 @@ func (c *NomadClient) makeRequest(ctx context.Context, method, path string, quer
 	return respBody, nil
 }
 
-// MakeRequest is a helper function to make HTTP requests to the Nomad API
+// MakeRequest performs an HTTP request to the Nomad API for MCP tools that cannot use typed client methods yet.
+// For defense in depth only a small GET/POST allowlist is permitted (cluster reads and allocation stop-style paths).
+// Prefer StopAllocation / ListClusterPeers / typed methods when available.
 func (c *NomadClient) MakeRequest(ctx context.Context, method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+	rel := normalizeAPIPath(path)
+	if err := validateMCPOutboundNomadHTTP(method, rel); err != nil {
+		return nil, err
+	}
 	return c.makeRequest(ctx, method, path, queryParams, body)
 }
 

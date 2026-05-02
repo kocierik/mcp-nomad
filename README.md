@@ -49,6 +49,8 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 
 The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
 
+`NomadClient.MakeRequest` (used only for a few cluster/legacy call sites) rejects paths outside an internal allow-list — prefer typed helpers such as `StopAllocation`.
+
 ## Use With Claude
 
 https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648

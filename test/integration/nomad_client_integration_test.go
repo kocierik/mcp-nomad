@@ -24,7 +24,24 @@ func NewMockNomadServer() *MockNomadServer {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/v1/job/", func(w http.ResponseWriter, r *http.Request) {
-		jobID := r.URL.Path[len("/v1/job/"):]
+		rest := r.URL.Path[len("/v1/job/"):]
+		// Job allocations sub-path: GET /v1/job/:id/allocations
+		const allocSuffix = "/allocations"
+		if r.Method == http.MethodGet && strings.HasSuffix(rest, allocSuffix) {
+			jobID := strings.TrimSuffix(rest, allocSuffix)
+			if jobID != "" {
+				allocations := []types.Allocation{{
+					ID:    "alloc-job-" + jobID,
+					Name:  "from-job-" + jobID,
+					JobID: jobID,
+				}}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(allocations)
+				return
+			}
+		}
+
+		jobID := rest
 
 		if r.Method == "GET" {
 			job := types.Job{
@@ -159,6 +176,15 @@ func NewMockNomadServer() *MockNomadServer {
 	})
 
 	mux.HandleFunc("/v1/allocation/", func(w http.ResponseWriter, r *http.Request) {
+		trim := strings.TrimSuffix(r.URL.Path[len("/v1/allocation/"):], "/")
+		if strings.HasSuffix(trim, "/stop") && r.Method == http.MethodPost {
+			allocID := strings.TrimSuffix(trim, "/stop")
+			if allocID != "" {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]string{"stopped": allocID})
+				return
+			}
+		}
 		allocID := r.URL.Path[len("/v1/allocation/"):]
 		allocation := types.Allocation{
 			ID:   allocID,
@@ -341,7 +367,7 @@ func TestNomadClientIntegration(t *testing.T) {
 	})
 
 	t.Run("ListAllocations", func(t *testing.T) {
-		allocations, err := client.ListAllocations(ctx)
+		allocations, err := client.ListAllocations(ctx, "default", "")
 		require.NoError(t, err)
 		assert.Len(t, allocations, 1)
 		assert.Equal(t, "alloc-1", allocations[0].ID)
@@ -352,6 +378,19 @@ func TestNomadClientIntegration(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "alloc-1", allocation.ID)
 		assert.Equal(t, "test-allocation", allocation.Name)
+	})
+
+	t.Run("StopAllocation", func(t *testing.T) {
+		err := client.StopAllocation(ctx, "alloc-1")
+		require.NoError(t, err)
+	})
+
+	t.Run("ListAllocationsForJob", func(t *testing.T) {
+		allocs, err := client.ListAllocations(ctx, "default", "web")
+		require.NoError(t, err)
+		require.Len(t, allocs, 1)
+		assert.Equal(t, "web", allocs[0].JobID)
+		assert.Contains(t, allocs[0].ID, "web")
 	})
 
 	t.Run("GetAllocationLogs", func(t *testing.T) {

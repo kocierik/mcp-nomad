@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/kocierik/mcp-nomad/types"
 )
@@ -21,9 +22,17 @@ func (c *NomadClient) GetAllocation(ctx context.Context, allocID string) (types.
 	return alloc, nil
 }
 
-// ListAllocations lists all allocations in the cluster
-func (c *NomadClient) ListAllocations(ctx context.Context) ([]types.Allocation, error) {
-	respBody, err := c.makeRequest(ctx, "GET", "allocations", nil, nil)
+// ListAllocations lists allocations via GET /v1/allocations (namespace optional) when jobID is empty.
+// When jobID is non-empty, it uses GET /v1/job/:job_id/allocations for that namespace (consistent with Nomad API).
+func (c *NomadClient) ListAllocations(ctx context.Context, namespace, jobID string) ([]types.Allocation, error) {
+	if strings.TrimSpace(jobID) != "" {
+		return c.ListJobAllocations(ctx, jobID, namespace)
+	}
+
+	queryParams := make(map[string]string)
+	AddNomadNamespaceQuery(queryParams, namespace)
+
+	respBody, err := c.makeRequest(ctx, "GET", "allocations", queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34,4 +43,15 @@ func (c *NomadClient) ListAllocations(ctx context.Context) ([]types.Allocation, 
 	}
 
 	return allocations, nil
+}
+
+// StopAllocation stops a running allocation (POST /v1/allocation/:id/stop).
+func (c *NomadClient) StopAllocation(ctx context.Context, allocationID string) error {
+	allocationID = strings.TrimSpace(allocationID)
+	if allocationID == "" {
+		return fmt.Errorf("allocation ID is required")
+	}
+	path := fmt.Sprintf("allocation/%s/stop", allocationID)
+	_, err := c.makeRequest(ctx, "POST", path, nil, nil)
+	return err
 }

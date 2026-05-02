@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -20,7 +21,7 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient utils.AllocationAP
 			mcp.Description("The namespace to list allocations from (default: default)"),
 		),
 		mcp.WithString("job_id",
-			mcp.Description("Filter allocations by job ID"),
+			mcp.Description("If set, list allocations via GET /v1/job/:job_id/allocations (namespace respected); otherwise GET /v1/allocations"),
 		),
 	)
 	s.AddTool(listAllocationsTool, ListAllocationsHandler(nomadClient, logger))
@@ -49,7 +50,18 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient utils.AllocationAP
 // ListAllocationsHandler returns a handler for listing allocations
 func ListAllocationsHandler(client utils.AllocationAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocations, err := client.ListAllocations(ctx)
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+
+		namespace := utils.EffectiveToolNamespace(arguments)
+		jobID := ""
+		if j, ok := arguments["job_id"].(string); ok {
+			jobID = strings.TrimSpace(j)
+		}
+
+		allocations, err := client.ListAllocations(ctx, namespace, jobID)
 		if err != nil {
 			logger.Printf("Error listing allocations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list allocations", err), nil
@@ -105,9 +117,7 @@ func StopAllocationHandler(client utils.AllocationAPI, logger *log.Logger) func(
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
 
-		// Stop allocation using the Nomad API
-		path := fmt.Sprintf("allocation/%s/stop", allocationID)
-		_, err := client.MakeRequest(ctx, "POST", path, nil, nil)
+		err := client.StopAllocation(ctx, allocationID)
 		if err != nil {
 			logger.Printf("Error stopping allocation: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to stop allocation", err), nil

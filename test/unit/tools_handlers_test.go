@@ -139,14 +139,14 @@ func TestGetAllocationHandler_returnsJSONFromClient(t *testing.T) {
 	assert.Contains(t, text.Text, `"ID": "alloc-abc"`)
 }
 
-func TestStopAllocationHandler_invokesPOST(t *testing.T) {
+func TestStopAllocationHandler_callsClientStop(t *testing.T) {
 	t.Parallel()
 
-	var method, path string
+	var got string
 	mock := &mocks.MockNomadClient{}
-	mock.MakeRequestFunc = func(_ context.Context, m, p string, _ map[string]string, _ interface{}) ([]byte, error) {
-		method, path = m, p
-		return []byte("{}"), nil
+	mock.StopAllocationFunc = func(_ context.Context, allocID string) error {
+		got = allocID
+		return nil
 	}
 
 	h := tools.StopAllocationHandler(mock, testLogger())
@@ -157,10 +157,32 @@ func TestStopAllocationHandler_invokesPOST(t *testing.T) {
 	res, err := h(context.Background(), req)
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	assert.Equal(t, "POST", method)
-	assert.Equal(t, "allocation/a1/stop", path)
+	assert.Equal(t, "a1", got)
 
 	text, ok := res.Content[0].(mcp.TextContent)
 	require.True(t, ok)
 	assert.Contains(t, text.Text, "stopped successfully")
+}
+
+func TestListAllocationsHandler_passesNamespaceAndJob(t *testing.T) {
+	t.Parallel()
+
+	var gotNs, gotJob string
+	mock := &mocks.MockNomadClient{}
+	mock.ListAllocationsFunc = func(_ context.Context, namespace, jobID string) ([]types.Allocation, error) {
+		gotNs, gotJob = namespace, jobID
+		return []types.Allocation{}, nil
+	}
+
+	h := tools.ListAllocationsHandler(mock, testLogger())
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]interface{}{
+		"namespace": "apps",
+		"job_id":    "demo",
+	}}}
+
+	res, err := h(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	assert.Equal(t, "apps", gotNs)
+	assert.Equal(t, "demo", gotJob)
 }

@@ -85,11 +85,11 @@ type VariableAPI interface {
 
 var _ VariableAPI = (*NomadClient)(nil)
 
-// AllocationAPI backs allocation MCP tools plus log streaming.
+// AllocationAPI backs allocation MCP tools (no arbitrary HTTP; cluster tools use ClusterToolsAPI).
 type AllocationAPI interface {
-	ListAllocations(ctx context.Context) ([]types.Allocation, error)
+	ListAllocations(ctx context.Context, namespace, jobID string) ([]types.Allocation, error)
 	GetAllocation(ctx context.Context, allocID string) (types.Allocation, error)
-	RawNomadCaller
+	StopAllocation(ctx context.Context, allocID string) error
 }
 
 var _ AllocationAPI = (*NomadClient)(nil)
