@@ -123,7 +123,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("invalid job ID in URI")
 		}
 
-		job, err := nomadClient.GetJob(jobID, "default")
+		job, err := nomadClient.GetJob(ctx, jobID, "default")
 		if err != nil {
 			logger.Printf("Error getting job spec: %v", err)
 			return nil, err
@@ -157,7 +157,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("invalid node ID in URI")
 		}
 
-		node, err := nomadClient.GetNode(nodeID)
+		node, err := nomadClient.GetNode(ctx, nodeID)
 		if err != nil {
 			logger.Printf("Error getting node status: %v", err)
 			return nil, err
@@ -192,7 +192,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 		}
 
 		// Get the allocation to find the task name
-		alloc, err := nomadClient.GetAllocation(allocID)
+		alloc, err := nomadClient.GetAllocation(ctx, allocID)
 		if err != nil {
 			logger.Printf("Error getting allocation: %v", err)
 			return nil, err
@@ -209,7 +209,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("no tasks found in allocation")
 		}
 
-		allocLogs, err := nomadClient.GetAllocationLogs(allocID, taskName, "stderr", false, 100, 0)
+		allocLogs, err := nomadClient.GetAllocationLogs(ctx, allocID, taskName, "stderr", false, 100, 0)
 		if err != nil {
 			logger.Printf("Error getting allocation logs: %v", err)
 			return nil, err
@@ -239,7 +239,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 		}
 
 		// Get job versions
-		versions, err := nomadClient.GetJobVersions(jobID, "default")
+		versions, err := nomadClient.GetJobVersions(ctx, jobID, "default")
 		if err != nil {
 			logger.Printf("Error getting job versions: %v", err)
 			return nil, err
@@ -273,7 +273,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("invalid node ID in URI")
 		}
 
-		node, err := nomadClient.GetNode(nodeID)
+		node, err := nomadClient.GetNode(ctx, nodeID)
 		if err != nil {
 			logger.Printf("Error getting node resources: %v", err)
 			return nil, err
@@ -323,7 +323,7 @@ func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClien
 			return nil, fmt.Errorf("invalid allocation ID in URI")
 		}
 
-		alloc, err := nomadClient.GetAllocation(allocID)
+		alloc, err := nomadClient.GetAllocation(ctx, allocID)
 		if err != nil {
 			logger.Printf("Error getting allocation status: %v", err)
 			return nil, err

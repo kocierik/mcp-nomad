@@ -115,7 +115,7 @@ func main() {
 
 	nomadAddr := os.Getenv("NOMAD_ADDR")
 	if nomadAddr == "" {
-		nomadAddr = "http://0.0.0.0:4646"
+		nomadAddr = "http://127.0.0.1:4646"
 	}
 
 	// Get token from environment

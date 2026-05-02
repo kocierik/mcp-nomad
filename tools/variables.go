@@ -126,7 +126,7 @@ func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(co
 			filter = f
 		}
 
-		variables, err := client.ListVariables(namespace, prefix, nextToken, perPage, filter)
+		variables, err := client.ListVariables(ctx, namespace, prefix, nextToken, perPage, filter)
 		if err != nil {
 			logger.Printf("Error listing variables: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list variables", err), nil
@@ -159,7 +159,7 @@ func GetVariableHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 			namespace = ns
 		}
 
-		variable, err := client.GetVariable(path, namespace)
+		variable, err := client.GetVariable(ctx, path, namespace)
 		if err != nil {
 			logger.Printf("Error getting variable: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get variable", err), nil
@@ -244,7 +244,7 @@ func CreateVariableHandler(client *utils.NomadClient, logger *log.Logger) func(c
 			Value: string(jsonValue),
 		}
 
-		err = client.CreateVariable(variable, namespace, cas, lockOp)
+		err = client.CreateVariable(ctx, variable, namespace, cas, lockOp)
 		if err != nil {
 			logger.Printf("Error creating variable: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create variable", err), nil
@@ -286,7 +286,7 @@ func DeleteVariableHandler(client *utils.NomadClient, logger *log.Logger) func(c
 			cas = int(c)
 		}
 
-		err := client.DeleteVariable(path, namespace, cas)
+		err := client.DeleteVariable(ctx, path, namespace, cas)
 		if err != nil {
 			logger.Printf("Error deleting variable: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete variable", err), nil

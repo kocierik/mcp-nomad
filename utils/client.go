@@ -4,6 +4,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -58,7 +59,7 @@ func NewNomadClient(address, token string) (*NomadClient, error) {
 	}
 
 	// Test the connection
-	_, err := client.makeRequest("GET", "status/leader", nil, nil)
+	_, err := client.makeRequest(context.Background(), "GET", "status/leader", nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Nomad server: %v", err)
 	}
@@ -90,9 +91,18 @@ func (c *NomadClient) GetDefaultTailLines() int {
 	return c.DefaultTailLines
 }
 
-// makeRequest is a helper function to make HTTP requests to the Nomad API
-func (c *NomadClient) makeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
-	baseURL := fmt.Sprintf("%s/v1/%s", c.address, path)
+// normalizeAPIPath strips a leading "/" and redundant "v1/" — makeRequest always adds /v1/.
+func normalizeAPIPath(p string) string {
+	p = strings.TrimPrefix(strings.TrimSpace(p), "/")
+	p = strings.TrimPrefix(p, "v1/")
+	return p
+}
+
+// makeRequest is a helper function to make HTTP requests to the Nomad API.
+func (c *NomadClient) makeRequest(ctx context.Context, method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+	rel := normalizeAPIPath(path)
+	base := strings.TrimSuffix(c.address, "/")
+	baseURL := fmt.Sprintf("%s/v1/%s", base, rel)
 
 	// Create url.Values for proper query parameter encoding
 	query := url.Values{}
@@ -114,7 +124,7 @@ func (c *NomadClient) makeRequest(method, path string, queryParams map[string]st
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
-	req, err := http.NewRequest(method, baseURL, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, baseURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
@@ -145,7 +155,7 @@ func (c *NomadClient) makeRequest(method, path string, queryParams map[string]st
 }
 
 // ListJobs lists jobs in the specified namespace
-func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, error) {
+func (c *NomadClient) ListJobs(ctx context.Context, namespace, status string) ([]types.JobSummary, error) {
 	path := "jobs"
 
 	queryParams := make(map[string]string)
@@ -156,7 +166,7 @@ func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, er
 		queryParams["status"] = status
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +180,7 @@ func (c *NomadClient) ListJobs(namespace, status string) ([]types.JobSummary, er
 }
 
 // GetJob retrieves a specific job by ID
-func (c *NomadClient) GetJob(jobID, namespace string) (types.Job, error) {
+func (c *NomadClient) GetJob(ctx context.Context, jobID, namespace string) (types.Job, error) {
 	path := fmt.Sprintf("job/%s", jobID)
 
 	queryParams := make(map[string]string)
@@ -178,7 +188,7 @@ func (c *NomadClient) GetJob(jobID, namespace string) (types.Job, error) {
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return types.Job{}, err
 	}
@@ -192,7 +202,7 @@ func (c *NomadClient) GetJob(jobID, namespace string) (types.Job, error) {
 }
 
 // RunJob submits a job to Nomad
-func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{}, error) {
+func (c *NomadClient) RunJob(ctx context.Context, jobSpec string, detach bool) (map[string]interface{}, error) {
 	// Try to parse as JSON first
 	var jobData interface{}
 	if err := json.Unmarshal([]byte(jobSpec), &jobData); err != nil {
@@ -203,7 +213,7 @@ func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{
 		}
 
 		// First parse the HCL to validate and convert to JSON
-		parseResp, err := c.makeRequest("POST", path, nil, parseRequest)
+		parseResp, err := c.makeRequest(ctx, "POST", path, nil, parseRequest)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing HCL job spec: %v", err)
 		}
@@ -228,7 +238,7 @@ func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{
 		queryParams["detach"] = "true"
 	}
 
-	respBody, err := c.makeRequest("POST", "jobs", queryParams, jobRequest)
+	respBody, err := c.makeRequest(ctx, "POST", "jobs", queryParams, jobRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +252,7 @@ func (c *NomadClient) RunJob(jobSpec string, detach bool) (map[string]interface{
 }
 
 // StopJob stops a job
-func (c *NomadClient) StopJob(jobID, namespace string, purge bool) (map[string]interface{}, error) {
+func (c *NomadClient) StopJob(ctx context.Context, jobID, namespace string, purge bool) (map[string]interface{}, error) {
 	path := fmt.Sprintf("job/%s", jobID)
 
 	queryParams := make(map[string]string)
@@ -253,7 +263,7 @@ func (c *NomadClient) StopJob(jobID, namespace string, purge bool) (map[string]i
 		queryParams["purge"] = "true"
 	}
 
-	respBody, err := c.makeRequest("DELETE", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "DELETE", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +277,7 @@ func (c *NomadClient) StopJob(jobID, namespace string, purge bool) (map[string]i
 }
 
 // ListDeployments lists all deployments
-func (c *NomadClient) ListDeployments(namespace string) ([]types.DeploymentSummary, error) {
+func (c *NomadClient) ListDeployments(ctx context.Context, namespace string) ([]types.DeploymentSummary, error) {
 	path := "deployments"
 
 	queryParams := make(map[string]string)
@@ -275,7 +285,7 @@ func (c *NomadClient) ListDeployments(namespace string) ([]types.DeploymentSumma
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -289,10 +299,10 @@ func (c *NomadClient) ListDeployments(namespace string) ([]types.DeploymentSumma
 }
 
 // GetDeployment retrieves a specific deployment
-func (c *NomadClient) GetDeployment(deploymentID string) (types.Deployment, error) {
+func (c *NomadClient) GetDeployment(ctx context.Context, deploymentID string) (types.Deployment, error) {
 	path := fmt.Sprintf("deployment/%s", deploymentID)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.Deployment{}, err
 	}
@@ -306,8 +316,8 @@ func (c *NomadClient) GetDeployment(deploymentID string) (types.Deployment, erro
 }
 
 // ListNamespaces lists all namespaces
-func (c *NomadClient) ListNamespaces() ([]types.Namespace, error) {
-	respBody, err := c.makeRequest("GET", "namespaces", nil, nil)
+func (c *NomadClient) ListNamespaces(ctx context.Context) ([]types.Namespace, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "namespaces", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -321,26 +331,26 @@ func (c *NomadClient) ListNamespaces() ([]types.Namespace, error) {
 }
 
 // CreateNamespace creates a new namespace
-func (c *NomadClient) CreateNamespace(namespace types.Namespace) error {
-	_, err := c.makeRequest("POST", "namespace", nil, namespace)
+func (c *NomadClient) CreateNamespace(ctx context.Context, namespace types.Namespace) error {
+	_, err := c.makeRequest(ctx, "POST", "namespace", nil, namespace)
 	return err
 }
 
 // DeleteNamespace deletes a namespace
-func (c *NomadClient) DeleteNamespace(name string) error {
+func (c *NomadClient) DeleteNamespace(ctx context.Context, name string) error {
 	path := fmt.Sprintf("namespace/%s", name)
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
 // ListNodes lists all nodes in the cluster
-func (c *NomadClient) ListNodes(status string) ([]types.NodeSummary, error) {
+func (c *NomadClient) ListNodes(ctx context.Context, status string) ([]types.NodeSummary, error) {
 	queryParams := make(map[string]string)
 	if status != "" {
 		queryParams["status"] = status
 	}
 
-	respBody, err := c.makeRequest("GET", "nodes", queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", "nodes", queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -354,10 +364,10 @@ func (c *NomadClient) ListNodes(status string) ([]types.NodeSummary, error) {
 }
 
 // GetNode retrieves a specific node by ID
-func (c *NomadClient) GetNode(nodeID string) (types.Node, error) {
+func (c *NomadClient) GetNode(ctx context.Context, nodeID string) (types.Node, error) {
 	path := fmt.Sprintf("node/%s", nodeID)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.Node{}, err
 	}
@@ -371,7 +381,7 @@ func (c *NomadClient) GetNode(nodeID string) (types.Node, error) {
 }
 
 // DrainNode enables or disables drain mode for a node
-func (c *NomadClient) DrainNode(nodeID string, enable bool, deadline int64) (string, error) {
+func (c *NomadClient) DrainNode(ctx context.Context, nodeID string, enable bool, deadline int64) (string, error) {
 	path := fmt.Sprintf("node/%s/drain", nodeID)
 
 	drainSpec := map[string]interface{}{
@@ -393,7 +403,7 @@ func (c *NomadClient) DrainNode(nodeID string, enable bool, deadline int64) (str
 		}
 	}
 
-	respBody, err := c.makeRequest("POST", path, nil, drainSpec)
+	respBody, err := c.makeRequest(ctx, "POST", path, nil, drainSpec)
 	if err != nil {
 		return "", err
 	}
@@ -413,14 +423,14 @@ func (c *NomadClient) DrainNode(nodeID string, enable bool, deadline int64) (str
 }
 
 // DrainNode enables or disables drain mode for a node
-func (c *NomadClient) EligibilityNode(nodeID string, eligible string) (types.NodeSummary, error) {
+func (c *NomadClient) EligibilityNode(ctx context.Context, nodeID string, eligible string) (types.NodeSummary, error) {
 	path := fmt.Sprintf("node/%s/eligibility", nodeID)
 
 	eligibilitySpec := map[string]interface{}{
 		"Eligibility": eligible,
 	}
 
-	respBody, err := c.makeRequest("POST", path, nil, eligibilitySpec)
+	respBody, err := c.makeRequest(ctx, "POST", path, nil, eligibilitySpec)
 	if err != nil {
 		return types.NodeSummary{}, err
 	}
@@ -434,12 +444,12 @@ func (c *NomadClient) EligibilityNode(nodeID string, eligible string) (types.Nod
 }
 
 // MakeRequest is a helper function to make HTTP requests to the Nomad API
-func (c *NomadClient) MakeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
-	return c.makeRequest(method, path, queryParams, body)
+func (c *NomadClient) MakeRequest(ctx context.Context, method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+	return c.makeRequest(ctx, method, path, queryParams, body)
 }
 
 // ListVolumes lists all host volumes
-func (c *NomadClient) ListVolumes(nodeID string, pluginID string, nextToken string, perPage int, filter string) ([]types.Volume, error) {
+func (c *NomadClient) ListVolumes(ctx context.Context, nodeID string, pluginID string, nextToken string, perPage int, filter string) ([]types.Volume, error) {
 	path := "volumes"
 	query := url.Values{}
 	if nodeID != "" {
@@ -459,7 +469,7 @@ func (c *NomadClient) ListVolumes(nodeID string, pluginID string, nextToken stri
 	}
 
 	var volumes []types.Volume
-	if err := c.get(path+"?"+query.Encode(), &volumes); err != nil {
+	if err := c.get(ctx, path+"?"+query.Encode(), &volumes); err != nil {
 		return nil, fmt.Errorf("error listing volumes: %v", err)
 	}
 
@@ -467,10 +477,10 @@ func (c *NomadClient) ListVolumes(nodeID string, pluginID string, nextToken stri
 }
 
 // GetVolume retrieves a specific host volume
-func (c *NomadClient) GetVolume(volumeID string) (*types.Volume, error) {
+func (c *NomadClient) GetVolume(ctx context.Context, volumeID string) (*types.Volume, error) {
 	path := fmt.Sprintf("/v1/volume/host/%s", volumeID)
 	var volume types.Volume
-	if err := c.get(path, &volume); err != nil {
+	if err := c.get(ctx, path, &volume); err != nil {
 		return nil, fmt.Errorf("error getting volume: %v", err)
 	}
 
@@ -478,9 +488,9 @@ func (c *NomadClient) GetVolume(volumeID string) (*types.Volume, error) {
 }
 
 // DeleteVolume deletes a host volume
-func (c *NomadClient) DeleteVolume(volumeID string) error {
+func (c *NomadClient) DeleteVolume(ctx context.Context, volumeID string) error {
 	path := fmt.Sprintf("/v1/volume/host/%s/delete", volumeID)
-	if err := c.delete(path); err != nil {
+	if err := c.delete(ctx, path); err != nil {
 		return fmt.Errorf("error deleting volume: %v", err)
 	}
 
@@ -488,7 +498,7 @@ func (c *NomadClient) DeleteVolume(volumeID string) error {
 }
 
 // ListVolumeClaims lists all volume claims
-func (c *NomadClient) ListVolumeClaims(namespace string, claimID string, jobID string, taskGroup string, volumeName string, nextToken string, perPage int) ([]types.VolumeClaim, error) {
+func (c *NomadClient) ListVolumeClaims(ctx context.Context, namespace string, claimID string, jobID string, taskGroup string, volumeName string, nextToken string, perPage int) ([]types.VolumeClaim, error) {
 	path := "volumes/"
 	query := url.Values{}
 	query.Set("namespace", namespace)
@@ -513,7 +523,7 @@ func (c *NomadClient) ListVolumeClaims(namespace string, claimID string, jobID s
 	}
 
 	var claims []types.VolumeClaim
-	if err := c.get(path+"?"+query.Encode(), &claims); err != nil {
+	if err := c.get(ctx, path+"?"+query.Encode(), &claims); err != nil {
 		return nil, fmt.Errorf("error listing volume claims: %v", err)
 	}
 
@@ -521,9 +531,9 @@ func (c *NomadClient) ListVolumeClaims(namespace string, claimID string, jobID s
 }
 
 // DeleteVolumeClaim deletes a volume claim
-func (c *NomadClient) DeleteVolumeClaim(claimID string) error {
+func (c *NomadClient) DeleteVolumeClaim(ctx context.Context, claimID string) error {
 	path := fmt.Sprintf("/v1/volumes/claim/%s", claimID)
-	if err := c.delete(path); err != nil {
+	if err := c.delete(ctx, path); err != nil {
 		return fmt.Errorf("error deleting volume claim: %v", err)
 	}
 
@@ -531,8 +541,8 @@ func (c *NomadClient) DeleteVolumeClaim(claimID string) error {
 }
 
 // ListACLTokens lists all ACL tokens
-func (c *NomadClient) ListACLTokens() ([]types.ACLToken, error) {
-	respBody, err := c.makeRequest("GET", "acl/tokens", nil, nil)
+func (c *NomadClient) ListACLTokens(ctx context.Context) ([]types.ACLToken, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "acl/tokens", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -546,10 +556,10 @@ func (c *NomadClient) ListACLTokens() ([]types.ACLToken, error) {
 }
 
 // GetACLToken retrieves a specific ACL token by accessor ID
-func (c *NomadClient) GetACLToken(accessorID string) (types.ACLToken, error) {
+func (c *NomadClient) GetACLToken(ctx context.Context, accessorID string) (types.ACLToken, error) {
 	path := fmt.Sprintf("acl/token/%s", accessorID)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.ACLToken{}, err
 	}
@@ -563,8 +573,8 @@ func (c *NomadClient) GetACLToken(accessorID string) (types.ACLToken, error) {
 }
 
 // CreateACLToken creates a new ACL token
-func (c *NomadClient) CreateACLToken(token types.ACLToken) (types.ACLToken, error) {
-	respBody, err := c.makeRequest("POST", "acl/token", nil, token)
+func (c *NomadClient) CreateACLToken(ctx context.Context, token types.ACLToken) (types.ACLToken, error) {
+	respBody, err := c.makeRequest(ctx, "POST", "acl/token", nil, token)
 	if err != nil {
 		return types.ACLToken{}, err
 	}
@@ -578,15 +588,15 @@ func (c *NomadClient) CreateACLToken(token types.ACLToken) (types.ACLToken, erro
 }
 
 // DeleteACLToken deletes an ACL token
-func (c *NomadClient) DeleteACLToken(accessorID string) error {
+func (c *NomadClient) DeleteACLToken(ctx context.Context, accessorID string) error {
 	path := fmt.Sprintf("acl/token/%s", accessorID)
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
 // ListACLPolicies lists all ACL policies
-func (c *NomadClient) ListACLPolicies() ([]types.ACLPolicy, error) {
-	respBody, err := c.makeRequest("GET", "acl/policies", nil, nil)
+func (c *NomadClient) ListACLPolicies(ctx context.Context) ([]types.ACLPolicy, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "acl/policies", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -600,10 +610,10 @@ func (c *NomadClient) ListACLPolicies() ([]types.ACLPolicy, error) {
 }
 
 // GetACLPolicy retrieves a specific ACL policy by name
-func (c *NomadClient) GetACLPolicy(name string) (types.ACLPolicy, error) {
+func (c *NomadClient) GetACLPolicy(ctx context.Context, name string) (types.ACLPolicy, error) {
 	path := fmt.Sprintf("acl/policy/%s", name)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.ACLPolicy{}, err
 	}
@@ -618,23 +628,23 @@ func (c *NomadClient) GetACLPolicy(name string) (types.ACLPolicy, error) {
 
 // CreateACLPolicy creates a new ACL policy OK
 
-func (c *NomadClient) CreateACLPolicy(policy types.ACLPolicy) error {
+func (c *NomadClient) CreateACLPolicy(ctx context.Context, policy types.ACLPolicy) error {
 	path := fmt.Sprintf("acl/policy/%s", policy.Name)
 
-	_, err := c.makeRequest("POST", path, nil, policy)
+	_, err := c.makeRequest(ctx, "POST", path, nil, policy)
 	return err
 }
 
 // DeleteACLPolicy deletes an ACL policy
-func (c *NomadClient) DeleteACLPolicy(name string) error {
+func (c *NomadClient) DeleteACLPolicy(ctx context.Context, name string) error {
 	path := fmt.Sprintf("acl/policy/%s", name)
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
 // ListACLRoles lists all ACL roles
-func (c *NomadClient) ListACLRoles() ([]types.ACLRole, error) {
-	respBody, err := c.makeRequest("GET", "acl/roles", nil, nil)
+func (c *NomadClient) ListACLRoles(ctx context.Context) ([]types.ACLRole, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "acl/roles", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -648,10 +658,10 @@ func (c *NomadClient) ListACLRoles() ([]types.ACLRole, error) {
 }
 
 // GetACLRole retrieves a specific ACL role by ID
-func (c *NomadClient) GetACLRole(id string) (types.ACLRole, error) {
+func (c *NomadClient) GetACLRole(ctx context.Context, id string) (types.ACLRole, error) {
 	path := fmt.Sprintf("acl/role/%s", id)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.ACLRole{}, err
 	}
@@ -665,8 +675,8 @@ func (c *NomadClient) GetACLRole(id string) (types.ACLRole, error) {
 }
 
 // CreateACLRole creates a new ACL role
-func (c *NomadClient) CreateACLRole(role types.ACLRole) (types.ACLRole, error) {
-	respBody, err := c.makeRequest("POST", "acl/role", nil, role)
+func (c *NomadClient) CreateACLRole(ctx context.Context, role types.ACLRole) (types.ACLRole, error) {
+	respBody, err := c.makeRequest(ctx, "POST", "acl/role", nil, role)
 	if err != nil {
 		return types.ACLRole{}, err
 	}
@@ -680,23 +690,23 @@ func (c *NomadClient) CreateACLRole(role types.ACLRole) (types.ACLRole, error) {
 }
 
 // DeleteACLRole deletes an ACL role
-func (c *NomadClient) DeleteACLRole(id string) error {
+func (c *NomadClient) DeleteACLRole(ctx context.Context, id string) error {
 	path := fmt.Sprintf("acl/role/%s", id)
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
 // Helper methods for HTTP requests
-func (c *NomadClient) get(path string, result interface{}) error {
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+func (c *NomadClient) get(ctx context.Context, path string, result interface{}) error {
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(respBody, result)
 }
 
-func (c *NomadClient) delete(path string) error {
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+func (c *NomadClient) delete(ctx context.Context, path string) error {
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
@@ -714,8 +724,8 @@ type VolumeClaim struct {
 }
 
 // BootstrapACLToken bootstraps the ACL system and returns the initial management token
-func (c *NomadClient) BootstrapACLToken() (types.ACLToken, error) {
-	respBody, err := c.makeRequest("POST", "acl/bootstrap", nil, nil)
+func (c *NomadClient) BootstrapACLToken(ctx context.Context) (types.ACLToken, error) {
+	respBody, err := c.makeRequest(ctx, "POST", "acl/bootstrap", nil, nil)
 	if err != nil {
 		return types.ACLToken{}, err
 	}
@@ -729,7 +739,7 @@ func (c *NomadClient) BootstrapACLToken() (types.ACLToken, error) {
 }
 
 // GetAllocationLogs retrieves logs from a specific task in an allocation
-func (c *NomadClient) GetAllocationLogs(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+func (c *NomadClient) GetAllocationLogs(ctx context.Context, allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
 	if allocID == "" {
 		return "", fmt.Errorf("allocation ID is required")
 	}
@@ -762,7 +772,7 @@ func (c *NomadClient) GetAllocationLogs(allocID, task, logType string, follow bo
 
 	// Make request to Nomad API
 	path := fmt.Sprintf("client/fs/logs/%s", allocID)
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to get allocation logs: %v", err)
 	}
@@ -781,8 +791,8 @@ func (c *NomadClient) GetAllocationLogs(allocID, task, logType string, follow bo
 }
 
 // GetClusterLeader return the info of the cluster leader
-func (c *NomadClient) GetClusterLeader() ([]byte, error) {
-	respBody, err := c.makeRequest("GET", "operator/raft/configuration", nil, nil)
+func (c *NomadClient) GetClusterLeader(ctx context.Context) ([]byte, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "operator/raft/configuration", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -790,8 +800,8 @@ func (c *NomadClient) GetClusterLeader() ([]byte, error) {
 }
 
 // ListClusterPeers return the list of the cluster nodes
-func (c *NomadClient) ListClusterPeers() ([]byte, error) {
-	respBody, err := c.makeRequest("GET", "operator/raft/configuration", nil, nil)
+func (c *NomadClient) ListClusterPeers(ctx context.Context) ([]byte, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "operator/raft/configuration", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -799,23 +809,19 @@ func (c *NomadClient) ListClusterPeers() ([]byte, error) {
 }
 
 // ListRegions return the regions listed
-func (c *NomadClient) ListRegions() ([]byte, error) {
-	respBody, err := c.MakeRequest("GET", "regions", nil, nil) // Check Nomad API for correct endpoint
-	if err != nil {
-		return nil, err
-	}
-	return respBody, nil
+func (c *NomadClient) ListRegions(ctx context.Context) ([]byte, error) {
+	return c.MakeRequest(ctx, "GET", "regions", nil, nil)
 }
 
 // GetJobVersions returns the versions of a job
-func (c *NomadClient) GetJobVersions(jobID, namespace string) ([]types.Job, error) {
+func (c *NomadClient) GetJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("/v1/job/%s/versions", jobID)
 	if namespace != "" {
 		path = fmt.Sprintf("%s?namespace=%s", path, namespace)
 	}
 
 	var versions []types.Job
-	err := c.get(path, &versions)
+	err := c.get(ctx, path, &versions)
 	if err != nil {
 		return nil, err
 	}
@@ -824,11 +830,11 @@ func (c *NomadClient) GetJobVersions(jobID, namespace string) ([]types.Job, erro
 }
 
 // GetAllocation returns the details of an allocation
-func (c *NomadClient) GetAllocation(allocID string) (types.Allocation, error) {
+func (c *NomadClient) GetAllocation(ctx context.Context, allocID string) (types.Allocation, error) {
 	path := fmt.Sprintf("allocation/%s", allocID)
 
 	var alloc types.Allocation
-	err := c.get(path, &alloc)
+	err := c.get(ctx, path, &alloc)
 	if err != nil {
 		return types.Allocation{}, err
 	}
@@ -837,8 +843,8 @@ func (c *NomadClient) GetAllocation(allocID string) (types.Allocation, error) {
 }
 
 // ListSentinelPolicies lists all Sentinel policies
-func (c *NomadClient) ListSentinelPolicies() ([]types.SentinelPolicy, error) {
-	respBody, err := c.makeRequest("GET", "sentinel/policies", nil, nil)
+func (c *NomadClient) ListSentinelPolicies(ctx context.Context) ([]types.SentinelPolicy, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "sentinel/policies", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -852,10 +858,10 @@ func (c *NomadClient) ListSentinelPolicies() ([]types.SentinelPolicy, error) {
 }
 
 // GetSentinelPolicy retrieves a specific Sentinel policy by name
-func (c *NomadClient) GetSentinelPolicy(name string) (types.SentinelPolicy, error) {
+func (c *NomadClient) GetSentinelPolicy(ctx context.Context, name string) (types.SentinelPolicy, error) {
 	path := fmt.Sprintf("sentinel/policy/%s", name)
 
-	respBody, err := c.makeRequest("GET", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return types.SentinelPolicy{}, err
 	}
@@ -869,21 +875,21 @@ func (c *NomadClient) GetSentinelPolicy(name string) (types.SentinelPolicy, erro
 }
 
 // CreateSentinelPolicy creates a new Sentinel policy
-func (c *NomadClient) CreateSentinelPolicy(policy types.SentinelPolicy) error {
+func (c *NomadClient) CreateSentinelPolicy(ctx context.Context, policy types.SentinelPolicy) error {
 	path := fmt.Sprintf("sentinel/policy/%s", policy.Name)
-	_, err := c.makeRequest("POST", path, nil, policy)
+	_, err := c.makeRequest(ctx, "POST", path, nil, policy)
 	return err
 }
 
 // DeleteSentinelPolicy deletes a Sentinel policy
-func (c *NomadClient) DeleteSentinelPolicy(name string) error {
+func (c *NomadClient) DeleteSentinelPolicy(ctx context.Context, name string) error {
 	path := fmt.Sprintf("sentinel/policy/%s", name)
-	_, err := c.makeRequest("DELETE", path, nil, nil)
+	_, err := c.makeRequest(ctx, "DELETE", path, nil, nil)
 	return err
 }
 
 // GetJobSubmission retrieves the original job submission
-func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) {
+func (c *NomadClient) GetJobSubmission(ctx context.Context, jobID, namespace string) (string, error) {
 	path := fmt.Sprintf("job/%s/submission", jobID)
 
 	queryParams := make(map[string]string)
@@ -891,7 +897,7 @@ func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) 
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return "", err
 	}
@@ -900,7 +906,7 @@ func (c *NomadClient) GetJobSubmission(jobID, namespace string) (string, error) 
 }
 
 // ListJobVersions lists all versions of a job
-func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, error) {
+func (c *NomadClient) ListJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("job/%s/versions", jobID)
 
 	queryParams := make(map[string]string)
@@ -908,7 +914,7 @@ func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, err
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +928,7 @@ func (c *NomadClient) ListJobVersions(jobID, namespace string) ([]types.Job, err
 }
 
 // ListJobAllocations lists all allocations for a job
-func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Allocation, error) {
+func (c *NomadClient) ListJobAllocations(ctx context.Context, jobID, namespace string) ([]types.Allocation, error) {
 	path := fmt.Sprintf("job/%s/allocations", jobID)
 
 	queryParams := make(map[string]string)
@@ -930,7 +936,7 @@ func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Alloc
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -944,7 +950,7 @@ func (c *NomadClient) ListJobAllocations(jobID, namespace string) ([]types.Alloc
 }
 
 // ListJobEvaluations lists all evaluations for a job
-func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evaluation, error) {
+func (c *NomadClient) ListJobEvaluations(ctx context.Context, jobID, namespace string) ([]types.Evaluation, error) {
 	path := fmt.Sprintf("job/%s/evaluations", jobID)
 
 	queryParams := make(map[string]string)
@@ -952,7 +958,7 @@ func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evalu
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -966,7 +972,7 @@ func (c *NomadClient) ListJobEvaluations(jobID, namespace string) ([]types.Evalu
 }
 
 // ListJobDeployments lists all deployments for a job
-func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDeployment, error) {
+func (c *NomadClient) ListJobDeployments(ctx context.Context, jobID, namespace string) ([]types.JobDeployment, error) {
 	path := fmt.Sprintf("job/%s/deployments", jobID)
 
 	queryParams := make(map[string]string)
@@ -974,7 +980,7 @@ func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDe
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -988,7 +994,7 @@ func (c *NomadClient) ListJobDeployments(jobID, namespace string) ([]types.JobDe
 }
 
 // GetJobDeployment retrieves the most recent deployment for a job
-func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeployment, error) {
+func (c *NomadClient) GetJobDeployment(ctx context.Context, jobID, namespace string) (types.JobDeployment, error) {
 	path := fmt.Sprintf("job/%s/deployment", jobID)
 
 	queryParams := make(map[string]string)
@@ -996,7 +1002,7 @@ func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeploy
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return types.JobDeployment{}, err
 	}
@@ -1010,7 +1016,7 @@ func (c *NomadClient) GetJobDeployment(jobID, namespace string) (types.JobDeploy
 }
 
 // GetJobSummary retrieves a summary of a job
-func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, error) {
+func (c *NomadClient) GetJobSummary(ctx context.Context, jobID, namespace string) (types.JobSummary, error) {
 	path := fmt.Sprintf("job/%s/summary", jobID)
 
 	queryParams := make(map[string]string)
@@ -1018,7 +1024,7 @@ func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, 
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return types.JobSummary{}, err
 	}
@@ -1046,18 +1052,18 @@ func (c *NomadClient) GetJobSummary(jobID, namespace string) (types.JobSummary, 
 }
 
 // UpdateJob updates an existing job
-func (c *NomadClient) UpdateJob(job types.Job, enforceIndex bool) error {
+func (c *NomadClient) UpdateJob(ctx context.Context, job types.Job, enforceIndex bool) error {
 	path := "jobs"
 	if enforceIndex {
 		path = fmt.Sprintf("%s?enforce_index=true", path)
 	}
 
-	_, err := c.makeRequest("POST", path, nil, job)
+	_, err := c.makeRequest(ctx, "POST", path, nil, job)
 	return err
 }
 
 // DispatchJob dispatches a parameterized job
-func (c *NomadClient) DispatchJob(jobID string, payload map[string]interface{}, meta map[string]string) (string, error) {
+func (c *NomadClient) DispatchJob(ctx context.Context, jobID string, payload map[string]interface{}, meta map[string]string) (string, error) {
 	path := fmt.Sprintf("job/%s/dispatch", jobID)
 
 	request := map[string]interface{}{
@@ -1065,7 +1071,7 @@ func (c *NomadClient) DispatchJob(jobID string, payload map[string]interface{}, 
 		"Meta":    meta,
 	}
 
-	respBody, err := c.makeRequest("POST", path, nil, request)
+	respBody, err := c.makeRequest(ctx, "POST", path, nil, request)
 	if err != nil {
 		return "", err
 	}
@@ -1081,7 +1087,7 @@ func (c *NomadClient) DispatchJob(jobID string, payload map[string]interface{}, 
 }
 
 // RevertJob reverts a job to a specific version
-func (c *NomadClient) RevertJob(jobID string, version int, enforceIndex bool) error {
+func (c *NomadClient) RevertJob(ctx context.Context, jobID string, version int, enforceIndex bool) error {
 	path := fmt.Sprintf("job/%s/revert", jobID)
 	if enforceIndex {
 		path = fmt.Sprintf("%s?enforce_index=true", path)
@@ -1091,12 +1097,12 @@ func (c *NomadClient) RevertJob(jobID string, version int, enforceIndex bool) er
 		"JobVersion": version,
 	}
 
-	_, err := c.makeRequest("POST", path, nil, request)
+	_, err := c.makeRequest(ctx, "POST", path, nil, request)
 	return err
 }
 
 // SetJobStability sets the stability of a job
-func (c *NomadClient) SetJobStability(jobID string, version int, stable bool) error {
+func (c *NomadClient) SetJobStability(ctx context.Context, jobID string, version int, stable bool) error {
 	path := fmt.Sprintf("job/%s/stability", jobID)
 
 	request := map[string]interface{}{
@@ -1104,15 +1110,15 @@ func (c *NomadClient) SetJobStability(jobID string, version int, stable bool) er
 		"Stable":     stable,
 	}
 
-	_, err := c.makeRequest("POST", path, nil, request)
+	_, err := c.makeRequest(ctx, "POST", path, nil, request)
 	return err
 }
 
 // CreateJobEvaluation forces a new evaluation for a job
-func (c *NomadClient) CreateJobEvaluation(jobID string) (string, error) {
+func (c *NomadClient) CreateJobEvaluation(ctx context.Context, jobID string) (string, error) {
 	path := fmt.Sprintf("job/%s/evaluate", jobID)
 
-	respBody, err := c.makeRequest("POST", path, nil, nil)
+	respBody, err := c.makeRequest(ctx, "POST", path, nil, nil)
 	if err != nil {
 		return "", err
 	}
@@ -1128,10 +1134,10 @@ func (c *NomadClient) CreateJobEvaluation(jobID string) (string, error) {
 }
 
 // CreateJobPlan creates a plan for a job
-func (c *NomadClient) CreateJobPlan(job types.Job) (types.JobPlan, error) {
+func (c *NomadClient) CreateJobPlan(ctx context.Context, job types.Job) (types.JobPlan, error) {
 	path := "job/plan"
 
-	respBody, err := c.makeRequest("POST", path, nil, job)
+	respBody, err := c.makeRequest(ctx, "POST", path, nil, job)
 	if err != nil {
 		return types.JobPlan{}, err
 	}
@@ -1145,15 +1151,15 @@ func (c *NomadClient) CreateJobPlan(job types.Job) (types.JobPlan, error) {
 }
 
 // ForceNewPeriodicInstance forces a new instance of a periodic job
-func (c *NomadClient) ForceNewPeriodicInstance(jobID string) error {
+func (c *NomadClient) ForceNewPeriodicInstance(ctx context.Context, jobID string) error {
 	path := fmt.Sprintf("job/%s/periodic/force", jobID)
 
-	_, err := c.makeRequest("POST", path, nil, nil)
+	_, err := c.makeRequest(ctx, "POST", path, nil, nil)
 	return err
 }
 
 // GetJobScaleStatus retrieves the scale status of a job
-func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScaleStatus, error) {
+func (c *NomadClient) GetJobScaleStatus(ctx context.Context, jobID, namespace string) (types.JobScaleStatus, error) {
 	path := fmt.Sprintf("job/%s/scale", jobID)
 
 	queryParams := make(map[string]string)
@@ -1161,7 +1167,7 @@ func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScale
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return types.JobScaleStatus{}, err
 	}
@@ -1175,7 +1181,7 @@ func (c *NomadClient) GetJobScaleStatus(jobID, namespace string) (types.JobScale
 }
 
 // ScaleTaskGroup scales a task group
-func (c *NomadClient) ScaleTaskGroup(jobID, group string, count int, namespace string) error {
+func (c *NomadClient) ScaleTaskGroup(ctx context.Context, jobID, group string, count int, namespace string) error {
 	path := fmt.Sprintf("job/%s/scale", jobID)
 
 	queryParams := make(map[string]string)
@@ -1190,12 +1196,12 @@ func (c *NomadClient) ScaleTaskGroup(jobID, group string, count int, namespace s
 		},
 	}
 
-	_, err := c.makeRequest("POST", path, queryParams, request)
+	_, err := c.makeRequest(ctx, "POST", path, queryParams, request)
 	return err
 }
 
 // ListJobServices lists all services for a job
-func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service, error) {
+func (c *NomadClient) ListJobServices(ctx context.Context, jobID, namespace string) ([]types.Service, error) {
 	path := fmt.Sprintf("job/%s/services", jobID)
 
 	queryParams := make(map[string]string)
@@ -1203,7 +1209,7 @@ func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service,
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1217,7 +1223,7 @@ func (c *NomadClient) ListJobServices(jobID, namespace string) ([]types.Service,
 }
 
 // ListVariables lists variables in the specified namespace
-func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, perPage int, filter string) ([]types.Variable, error) {
+func (c *NomadClient) ListVariables(ctx context.Context, namespace, prefix string, nextToken string, perPage int, filter string) ([]types.Variable, error) {
 	path := "vars"
 
 	queryParams := make(map[string]string)
@@ -1237,7 +1243,7 @@ func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, 
 		queryParams["filter"] = filter
 	}
 
-	respBody, err := c.makeRequest("GET", path, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1251,7 +1257,7 @@ func (c *NomadClient) ListVariables(namespace, prefix string, nextToken string, 
 }
 
 // GetVariable retrieves a specific variable by path
-func (c *NomadClient) GetVariable(path, namespace string) (types.Variable, error) {
+func (c *NomadClient) GetVariable(ctx context.Context, path, namespace string) (types.Variable, error) {
 	apiPath := fmt.Sprintf("var/%s", path)
 
 	queryParams := make(map[string]string)
@@ -1259,7 +1265,7 @@ func (c *NomadClient) GetVariable(path, namespace string) (types.Variable, error
 		queryParams["namespace"] = namespace
 	}
 
-	respBody, err := c.makeRequest("GET", apiPath, queryParams, nil)
+	respBody, err := c.makeRequest(ctx, "GET", apiPath, queryParams, nil)
 	if err != nil {
 		return types.Variable{}, err
 	}
@@ -1273,7 +1279,7 @@ func (c *NomadClient) GetVariable(path, namespace string) (types.Variable, error
 }
 
 // CreateVariable creates a new variable
-func (c *NomadClient) CreateVariable(variable types.Variable, namespace string, cas int, lockOperation string) error {
+func (c *NomadClient) CreateVariable(ctx context.Context, variable types.Variable, namespace string, cas int, lockOperation string) error {
 	apiPath := fmt.Sprintf("var/%s", variable.Path)
 
 	// Parse the Value string into a map to use as request body
@@ -1298,12 +1304,12 @@ func (c *NomadClient) CreateVariable(variable types.Variable, namespace string, 
 		queryParams["namespace"] = namespace
 	}
 
-	_, err := c.makeRequest("PUT", apiPath, queryParams, requestBody)
+	_, err := c.makeRequest(ctx, "PUT", apiPath, queryParams, requestBody)
 	return err
 }
 
 // DeleteVariable deletes a variable by path
-func (c *NomadClient) DeleteVariable(path, namespace string, cas int) error {
+func (c *NomadClient) DeleteVariable(ctx context.Context, path, namespace string, cas int) error {
 	apiPath := fmt.Sprintf("var/%s", path)
 
 	queryParams := make(map[string]string)
@@ -1314,13 +1320,13 @@ func (c *NomadClient) DeleteVariable(path, namespace string, cas int) error {
 		queryParams["cas"] = strconv.Itoa(cas)
 	}
 
-	_, err := c.makeRequest("DELETE", apiPath, queryParams, nil)
+	_, err := c.makeRequest(ctx, "DELETE", apiPath, queryParams, nil)
 	return err
 }
 
 // ListAllocations lists all allocations in the cluster
-func (c *NomadClient) ListAllocations() ([]types.Allocation, error) {
-	respBody, err := c.makeRequest("GET", "allocations", nil, nil)
+func (c *NomadClient) ListAllocations(ctx context.Context) ([]types.Allocation, error) {
+	respBody, err := c.makeRequest(ctx, "GET", "allocations", nil, nil)
 	if err != nil {
 		return nil, err
 	}

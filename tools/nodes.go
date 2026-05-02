@@ -78,7 +78,7 @@ func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 			status = s
 		}
 
-		nodes, err := client.ListNodes(status)
+		nodes, err := client.ListNodes(ctx, status)
 		if err != nil {
 			logger.Printf("Error listing nodes: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list nodes", err), nil
@@ -106,7 +106,7 @@ func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 			return mcp.NewToolResultError("node_id is required"), nil
 		}
 
-		node, err := client.GetNode(nodeID)
+		node, err := client.GetNode(ctx, nodeID)
 		if err != nil {
 			logger.Printf("Error getting node: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get node", err), nil
@@ -144,7 +144,7 @@ func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 			deadline = int64(d)
 		}
 
-		result, err := client.DrainNode(nodeID, enable, deadline)
+		result, err := client.DrainNode(ctx, nodeID, enable, deadline)
 		if err != nil {
 			logger.Printf("Error draining node: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to drain node", err), nil
@@ -181,7 +181,7 @@ func EligibilityNodeHandler(client *utils.NomadClient, logger *log.Logger) func(
 			return mcp.NewToolResultError("eligible is required"), nil
 		}
 
-		node, err := client.EligibilityNode(nodeID, eligible)
+		node, err := client.EligibilityNode(ctx, nodeID, eligible)
 		if err != nil {
 			logger.Printf("Error setting node eligibility: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to set node eligibility", err), nil

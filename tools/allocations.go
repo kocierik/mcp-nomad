@@ -49,7 +49,7 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient *utils.NomadClient
 // ListAllocationsHandler returns a handler for listing allocations
 func ListAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		allocations, err := client.ListAllocations()
+		allocations, err := client.ListAllocations(ctx)
 		if err != nil {
 			logger.Printf("Error listing allocations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list allocations", err), nil
@@ -77,7 +77,7 @@ func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(co
 			return mcp.NewToolResultError("allocation_id is required"), nil
 		}
 
-		allocation, err := client.GetAllocation(allocID)
+		allocation, err := client.GetAllocation(ctx, allocID)
 		if err != nil {
 			logger.Printf("Error getting allocation: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get allocation", err), nil
@@ -107,7 +107,7 @@ func StopAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(c
 
 		// Stop allocation using the Nomad API
 		path := fmt.Sprintf("allocation/%s/stop", allocationID)
-		_, err := client.MakeRequest("POST", path, nil, nil)
+		_, err := client.MakeRequest(ctx, "POST", path, nil, nil)
 		if err != nil {
 			logger.Printf("Error stopping allocation: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to stop allocation", err), nil

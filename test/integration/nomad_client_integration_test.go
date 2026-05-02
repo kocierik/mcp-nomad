@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -260,8 +261,9 @@ func TestNomadClientIntegration(t *testing.T) {
 	client, err := utils.NewNomadClient(mockServer.URL(), "")
 	require.NoError(t, err)
 
+	ctx := context.Background()
 	t.Run("ListJobs", func(t *testing.T) {
-		jobs, err := client.ListJobs("default", "")
+		jobs, err := client.ListJobs(ctx, "default", "")
 		require.NoError(t, err)
 		assert.Len(t, jobs, 2)
 		assert.Equal(t, "test-job-1", jobs[0].ID)
@@ -269,28 +271,28 @@ func TestNomadClientIntegration(t *testing.T) {
 	})
 
 	t.Run("GetJob", func(t *testing.T) {
-		job, err := client.GetJob("test-job-1", "default")
+		job, err := client.GetJob(ctx, "test-job-1", "default")
 		require.NoError(t, err)
 		assert.Equal(t, "test-job-1", job.ID)
 		assert.Equal(t, "service", job.Type)
 	})
 
 	t.Run("RunJob", func(t *testing.T) {
-		result, err := client.RunJob(testdata.SampleJobSpecs["simple"], false)
+		result, err := client.RunJob(ctx, testdata.SampleJobSpecs["simple"], false)
 		require.NoError(t, err)
 		assert.Contains(t, result, "EvalID")
 		assert.Equal(t, "eval-123", result["EvalID"])
 	})
 
 	t.Run("StopJob", func(t *testing.T) {
-		result, err := client.StopJob("test-job-1", "default", false)
+		result, err := client.StopJob(ctx, "test-job-1", "default", false)
 		require.NoError(t, err)
 		assert.Contains(t, result, "EvalID")
 		assert.Equal(t, "eval-456", result["EvalID"])
 	})
 
 	t.Run("ListNodes", func(t *testing.T) {
-		nodes, err := client.ListNodes("")
+		nodes, err := client.ListNodes(ctx, "")
 		require.NoError(t, err)
 		assert.Len(t, nodes, 2)
 		assert.Equal(t, "node-1", nodes[0].ID)
@@ -298,26 +300,26 @@ func TestNomadClientIntegration(t *testing.T) {
 	})
 
 	t.Run("GetNode", func(t *testing.T) {
-		node, err := client.GetNode("node-1")
+		node, err := client.GetNode(ctx, "node-1")
 		require.NoError(t, err)
 		assert.Equal(t, "node-1", node.ID)
 		assert.Equal(t, "ready", node.Status)
 	})
 
 	t.Run("DrainNode", func(t *testing.T) {
-		result, err := client.DrainNode("node-1", true, 300)
+		result, err := client.DrainNode(ctx, "node-1", true, 300)
 		require.NoError(t, err)
 		assert.Contains(t, result, "drain enabled")
 	})
 
 	t.Run("EligibilityNode", func(t *testing.T) {
-		node, err := client.EligibilityNode("node-1", "eligible")
+		node, err := client.EligibilityNode(ctx, "node-1", "eligible")
 		require.NoError(t, err)
 		assert.Equal(t, "node-1", node.ID)
 	})
 
 	t.Run("ListNamespaces", func(t *testing.T) {
-		namespaces, err := client.ListNamespaces()
+		namespaces, err := client.ListNamespaces(ctx)
 		require.NoError(t, err)
 		assert.Len(t, namespaces, 2)
 		assert.Equal(t, "default", namespaces[0].Name)
@@ -329,45 +331,45 @@ func TestNomadClientIntegration(t *testing.T) {
 			Name:        "test-namespace",
 			Description: "Test namespace",
 		}
-		err := client.CreateNamespace(namespace)
+		err := client.CreateNamespace(ctx, namespace)
 		require.NoError(t, err)
 	})
 
 	t.Run("DeleteNamespace", func(t *testing.T) {
-		err := client.DeleteNamespace("test-namespace")
+		err := client.DeleteNamespace(ctx, "test-namespace")
 		require.NoError(t, err)
 	})
 
 	t.Run("ListAllocations", func(t *testing.T) {
-		allocations, err := client.ListAllocations()
+		allocations, err := client.ListAllocations(ctx)
 		require.NoError(t, err)
 		assert.Len(t, allocations, 1)
 		assert.Equal(t, "alloc-1", allocations[0].ID)
 	})
 
 	t.Run("GetAllocation", func(t *testing.T) {
-		allocation, err := client.GetAllocation("alloc-1")
+		allocation, err := client.GetAllocation(ctx, "alloc-1")
 		require.NoError(t, err)
 		assert.Equal(t, "alloc-1", allocation.ID)
 		assert.Equal(t, "test-allocation", allocation.Name)
 	})
 
 	t.Run("GetAllocationLogs", func(t *testing.T) {
-		logs, err := client.GetAllocationLogs("alloc-1", "nginx", "stdout", false, 0, 0)
+		logs, err := client.GetAllocationLogs(ctx, "alloc-1", "nginx", "stdout", false, 0, 0)
 		require.NoError(t, err)
 		assert.Contains(t, logs, "Starting nginx")
 		assert.Contains(t, logs, "Server started on port 80")
 	})
 
 	t.Run("ListVariables", func(t *testing.T) {
-		variables, err := client.ListVariables("default", "", "", 0, "")
+		variables, err := client.ListVariables(ctx, "default", "", "", 0, "")
 		require.NoError(t, err)
 		assert.Len(t, variables, 1)
 		assert.Equal(t, "app/config", variables[0].Path)
 	})
 
 	t.Run("GetVariable", func(t *testing.T) {
-		variable, err := client.GetVariable("app/config", "default")
+		variable, err := client.GetVariable(ctx, "app/config", "default")
 		require.NoError(t, err)
 		assert.Equal(t, "app/config", variable.Path)
 		assert.Contains(t, variable.Value, "database_url")
@@ -378,24 +380,24 @@ func TestNomadClientIntegration(t *testing.T) {
 			Path:  "test/config",
 			Value: `{"Items":{"key":"value"}}`,
 		}
-		err := client.CreateVariable(variable, "default", 0, "")
+		err := client.CreateVariable(ctx, variable, "default", 0, "")
 		require.NoError(t, err)
 	})
 
 	t.Run("DeleteVariable", func(t *testing.T) {
-		err := client.DeleteVariable("test/config", "default", 0)
+		err := client.DeleteVariable(ctx, "test/config", "default", 0)
 		require.NoError(t, err)
 	})
 
 	t.Run("ListACLTokens", func(t *testing.T) {
-		tokens, err := client.ListACLTokens()
+		tokens, err := client.ListACLTokens(ctx)
 		require.NoError(t, err)
 		assert.Len(t, tokens, 1)
 		assert.Equal(t, "token-1", tokens[0].AccessorID)
 	})
 
 	t.Run("GetACLToken", func(t *testing.T) {
-		token, err := client.GetACLToken("token-1")
+		token, err := client.GetACLToken(ctx, "token-1")
 		require.NoError(t, err)
 		assert.Equal(t, "token-1", token.AccessorID)
 		assert.Equal(t, "test-token", token.Name)
@@ -407,30 +409,30 @@ func TestNomadClientIntegration(t *testing.T) {
 			Type:     "client",
 			Policies: []string{"read-only"},
 		}
-		newToken, err := client.CreateACLToken(token)
+		newToken, err := client.CreateACLToken(ctx, token)
 		require.NoError(t, err)
 		assert.Equal(t, "test-token", newToken.Name)
 	})
 
 	t.Run("DeleteACLToken", func(t *testing.T) {
-		err := client.DeleteACLToken("token-1")
+		err := client.DeleteACLToken(ctx, "token-1")
 		require.NoError(t, err)
 	})
 
 	t.Run("GetClusterLeader", func(t *testing.T) {
-		data, err := client.GetClusterLeader()
+		data, err := client.GetClusterLeader(ctx)
 		require.NoError(t, err)
 		assert.Contains(t, string(data), "server-1")
 	})
 
 	t.Run("ListClusterPeers", func(t *testing.T) {
-		data, err := client.ListClusterPeers()
+		data, err := client.ListClusterPeers(ctx)
 		require.NoError(t, err)
 		assert.Contains(t, string(data), "server-1")
 	})
 
 	t.Run("ListRegions", func(t *testing.T) {
-		data, err := client.ListRegions()
+		data, err := client.ListRegions(ctx)
 		require.NoError(t, err)
 		assert.Contains(t, string(data), "global")
 	})

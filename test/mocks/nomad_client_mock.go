@@ -1,6 +1,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/kocierik/mcp-nomad/types"
 )
 
@@ -241,6 +243,7 @@ func (m *MockNomadClient) SetToken(token string)               {}
 func (m *MockNomadClient) GetToken() string                    { return "" }
 func (m *MockNomadClient) SetDefaultTailLines(lines int) error { return nil }
 func (m *MockNomadClient) GetDefaultTailLines() int            { return 100 }
-func (m *MockNomadClient) MakeRequest(method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+func (m *MockNomadClient) MakeRequest(ctx context.Context, method, path string, queryParams map[string]string, body interface{}) ([]byte, error) {
+	_ = ctx
 	return []byte{}, nil
 }

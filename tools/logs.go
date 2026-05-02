@@ -78,7 +78,7 @@ func GetAllocationLogsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			offset = int64(o)
 		}
 
-		logs, err := client.GetAllocationLogs(allocID, task, logType, follow, tail, offset)
+		logs, err := client.GetAllocationLogs(ctx, allocID, task, logType, follow, tail, offset)
 		if err != nil {
 			logger.Printf("Error getting allocation logs: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get allocation logs", err), nil

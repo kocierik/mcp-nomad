@@ -73,7 +73,7 @@ func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 		}
 
 		// List volumes with the specified parameters
-		volumes, err := client.ListVolumes(nodeID, pluginID, nextToken, perPage, filter)
+		volumes, err := client.ListVolumes(ctx, nodeID, pluginID, nextToken, perPage, filter)
 		if err != nil {
 			logger.Printf("Error listing volumes: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list volumes", err), nil
@@ -103,7 +103,7 @@ func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 			return mcp.NewToolResultError("volume_id is required"), nil
 		}
 
-		volume, err := client.GetVolume(volumeID)
+		volume, err := client.GetVolume(ctx, volumeID)
 
 		if err != nil {
 			logger.Printf("Error getting volume: %v", err)
@@ -133,7 +133,7 @@ func DeleteVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(con
 			return mcp.NewToolResultError("volume_id is required"), nil
 		}
 
-		err := client.DeleteVolume(volumeID)
+		err := client.DeleteVolume(ctx, volumeID)
 
 		if err != nil {
 			logger.Printf("Error deleting volume: %v", err)

@@ -46,7 +46,7 @@ func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(
 			namespace = ns
 		}
 
-		deployments, err := client.ListDeployments(namespace)
+		deployments, err := client.ListDeployments(ctx, namespace)
 		if err != nil {
 			logger.Printf("Error listing deployments: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list deployments", err), nil
@@ -74,7 +74,7 @@ func GetDeploymentHandler(client *utils.NomadClient, logger *log.Logger) func(co
 			return mcp.NewToolResultError("deployment_id is required"), nil
 		}
 
-		deployment, err := client.GetDeployment(deploymentID)
+		deployment, err := client.GetDeployment(ctx, deploymentID)
 		if err != nil {
 			logger.Printf("Error getting deployment: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get deployment", err), nil

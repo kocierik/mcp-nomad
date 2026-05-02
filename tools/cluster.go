@@ -34,7 +34,7 @@ func RegisterClusterTools(s *server.MCPServer, nomadClient *utils.NomadClient, l
 
 func GetClusterLeaderHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		body, err := client.MakeRequest("GET", "operator/raft/configuration", nil, nil)
+		body, err := client.MakeRequest(ctx, "GET", "operator/raft/configuration", nil, nil)
 		if err != nil {
 			logger.Printf("Error getting cluster configuration: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get cluster configuration", err), nil
@@ -96,7 +96,7 @@ func GetClusterLeaderHandler(client *utils.NomadClient, logger *log.Logger) func
 // ListClusterPeersHandler returns a handler for listing cluster peers
 func ListClusterPeersHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		body, err := client.ListClusterPeers()
+		body, err := client.ListClusterPeers(ctx)
 
 		if err != nil {
 			logger.Printf("Error getting cluster configuration: %v", err)
@@ -138,7 +138,7 @@ func ListClusterPeersHandler(client *utils.NomadClient, logger *log.Logger) func
 // ListRegionsHandler returns a handler for listing regions
 func ListRegionsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		body, err := client.MakeRequest("GET", "regions", nil, nil)
+		body, err := client.MakeRequest(ctx, "GET", "regions", nil, nil)
 		if err != nil {
 			logger.Printf("Error listing regions: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list regions", err), nil

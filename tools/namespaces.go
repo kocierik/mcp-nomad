@@ -48,7 +48,7 @@ func RegisterNamespaceTools(s *server.MCPServer, nomadClient *utils.NomadClient,
 // ListNamespacesHandler returns a handler for listing namespaces
 func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		namespaces, err := client.ListNamespaces()
+		namespaces, err := client.ListNamespaces(ctx)
 		if err != nil {
 			logger.Printf("Error listing namespaces: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list namespaces", err), nil
@@ -86,7 +86,7 @@ func CreateNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(
 			Description: description,
 		}
 
-		err := client.CreateNamespace(namespace)
+		err := client.CreateNamespace(ctx, namespace)
 		if err != nil {
 			logger.Printf("Error creating namespace: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create namespace", err), nil
@@ -118,7 +118,7 @@ func DeleteNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		err := client.DeleteNamespace(name)
+		err := client.DeleteNamespace(ctx, name)
 		if err != nil {
 			logger.Printf("Error deleting namespace: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete namespace", err), nil

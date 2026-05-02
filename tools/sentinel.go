@@ -70,7 +70,7 @@ func RegisterSentinelTools(s *server.MCPServer, client *utils.NomadClient, logge
 // ListSentinelPoliciesHandler returns a handler for listing Sentinel policies
 func ListSentinelPoliciesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		policies, err := client.ListSentinelPolicies()
+		policies, err := client.ListSentinelPolicies(ctx)
 		if err != nil {
 			logger.Printf("Error listing Sentinel policies: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list Sentinel policies", err), nil
@@ -98,7 +98,7 @@ func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) fun
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		policy, err := client.GetSentinelPolicy(name)
+		policy, err := client.GetSentinelPolicy(ctx, name)
 		if err != nil {
 			logger.Printf("Error getting Sentinel policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get Sentinel policy", err), nil
@@ -136,7 +136,7 @@ func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 			Description: description,
 		}
 
-		err := client.CreateSentinelPolicy(policy)
+		err := client.CreateSentinelPolicy(ctx, policy)
 		if err != nil {
 			logger.Printf("Error creating Sentinel policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create Sentinel policy", err), nil
@@ -168,7 +168,7 @@ func DeleteSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 			return mcp.NewToolResultError("name is required"), nil
 		}
 
-		err := client.DeleteSentinelPolicy(name)
+		err := client.DeleteSentinelPolicy(ctx, name)
 		if err != nil {
 			logger.Printf("Error deleting Sentinel policy: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete Sentinel policy", err), nil

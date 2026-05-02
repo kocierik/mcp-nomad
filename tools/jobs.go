@@ -174,7 +174,7 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 			statusFilter = s
 		}
 
-		initialJobStubs, err := client.ListJobs(namespace, statusFilter)
+		initialJobStubs, err := client.ListJobs(ctx, namespace, statusFilter)
 		if err != nil {
 			logger.Printf("Error listing initial jobs: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to list jobs", err), nil
@@ -199,7 +199,7 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 		for _, stub := range initialJobStubs {
 			jobID := stub.ID
 
-			fullJob, errJob := client.GetJob(jobID, namespace)
+			fullJob, errJob := client.GetJob(ctx, jobID, namespace)
 			if errJob != nil {
 				logger.Printf("Error getting full details for job %s in namespace %s: %v. Skipping this job.", jobID, namespace, errJob)
 				continue
@@ -219,7 +219,7 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 				JobSummary:        nil,
 			}
 
-			basicSummaryValue, errSummary := client.GetJobSummary(jobID, namespace)
+			basicSummaryValue, errSummary := client.GetJobSummary(ctx, jobID, namespace)
 			if errSummary == nil {
 				detailedSummaryForOutput := types.JobSummaryDetails{
 					JobID:       fullJob.ID,
@@ -265,7 +265,7 @@ func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 			namespace = ns
 		}
 
-		job, err := client.GetJob(jobID, namespace)
+		job, err := client.GetJob(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job", err), nil
@@ -298,7 +298,7 @@ func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 			detach = d
 		}
 
-		result, err := client.RunJob(jobSpec, detach)
+		result, err := client.RunJob(ctx, jobSpec, detach)
 		if err != nil {
 			logger.Printf("Error running job: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to run job", err), nil
@@ -336,7 +336,7 @@ func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 			purge = p
 		}
 
-		result, err := client.StopJob(jobID, namespace, purge)
+		result, err := client.StopJob(ctx, jobID, namespace, purge)
 		if err != nil {
 			logger.Printf("Error stopping job: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to stop job", err), nil
@@ -379,7 +379,7 @@ func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context
 			namespace = ns
 		}
 
-		err := client.ScaleTaskGroup(jobID, group, int(count), namespace)
+		err := client.ScaleTaskGroup(ctx, jobID, group, int(count), namespace)
 		if err != nil {
 			logger.Printf("Error scaling job: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to scale job", err), nil
@@ -416,7 +416,7 @@ func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			namespace = ns
 		}
 
-		allocations, err := client.ListJobAllocations(jobID, namespace)
+		allocations, err := client.ListJobAllocations(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job allocations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job allocations", err), nil
@@ -449,7 +449,7 @@ func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			namespace = ns
 		}
 
-		evaluations, err := client.ListJobEvaluations(jobID, namespace)
+		evaluations, err := client.ListJobEvaluations(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job evaluations: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job evaluations", err), nil
@@ -482,7 +482,7 @@ func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) fun
 			namespace = ns
 		}
 
-		deployments, err := client.ListJobDeployments(jobID, namespace)
+		deployments, err := client.ListJobDeployments(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job deployments: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job deployments", err), nil
@@ -515,7 +515,7 @@ func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(co
 			namespace = ns
 		}
 
-		summary, err := client.GetJobSummary(jobID, namespace)
+		summary, err := client.GetJobSummary(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job summary: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job summary", err), nil
@@ -548,7 +548,7 @@ func GetJobServicesHandler(client *utils.NomadClient, logger *log.Logger) func(c
 			namespace = ns
 		}
 
-		services, err := client.ListJobServices(jobID, namespace)
+		services, err := client.ListJobServices(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job services: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get job services", err), nil
