@@ -59,6 +59,10 @@ func authFromRequest(ctx context.Context, r *http.Request) context.Context {
 	if token == "" {
 		return ctx
 	}
+	token = utils.CanonicalAuthorizationBearer(token)
+	if token == "" {
+		return ctx
+	}
 	return withAuthKey(ctx, token)
 }
 

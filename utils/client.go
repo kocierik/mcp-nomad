@@ -61,7 +61,7 @@ func NewNomadClient(address, token string) (*NomadClient, error) {
 	// Test the connection
 	_, err := client.makeRequest(context.Background(), "GET", "status/leader", nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Nomad server: %v", err)
+		return nil, fmt.Errorf("failed to connect to Nomad server: %w", err)
 	}
 
 	return client, nil
@@ -119,14 +119,14 @@ func (c *NomadClient) makeRequest(ctx context.Context, method, path string, quer
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return nil, fmt.Errorf("error marshaling request body: %v", err)
+			return nil, fmt.Errorf("error marshaling request body: %w", err)
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, baseURL, reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -138,17 +138,17 @@ func (c *NomadClient) makeRequest(ctx context.Context, method, path string, quer
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
+		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+		return nil, NewNomadHTTPError(resp.StatusCode, method, rel, respBody)
 	}
 
 	return respBody, nil
