@@ -4,11 +4,14 @@ package utils
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +50,9 @@ func NewNomadClient(address, token string) (*NomadClient, error) {
 		token:   token,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: buildTLSConfig(),
+			},
 		},
 		DefaultTailLines: 100, // Default to showing last 100 lines
 	}
@@ -1325,4 +1331,29 @@ func (c *NomadClient) ListAllocations() ([]types.Allocation, error) {
 	}
 
 	return allocations, nil
+}
+
+// buildTLSConfig constructs a *tls.Config from the standard NOMAD_* TLS environment
+// variables, matching the behavior of the official Nomad CLI and Go SDK.
+func buildTLSConfig() *tls.Config {
+	cfg := &tls.Config{}
+
+	if caFile := os.Getenv("NOMAD_CACERT"); caFile != "" {
+		if caPEM, err := os.ReadFile(caFile); err == nil {
+			pool := x509.NewCertPool()
+			if pool.AppendCertsFromPEM(caPEM) {
+				cfg.RootCAs = pool
+			}
+		}
+	}
+
+	if os.Getenv("NOMAD_SKIP_VERIFY") == "true" {
+		cfg.InsecureSkipVerify = true
+	}
+
+	if name := os.Getenv("NOMAD_TLS_SERVER_NAME"); name != "" {
+		cfg.ServerName = name
+	}
+
+	return cfg
 }
