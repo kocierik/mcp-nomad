@@ -13,7 +13,7 @@ import (
 )
 
 // RegisterJobTools registers all job-related tools
-func RegisterJobTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterJobTools(s *server.MCPServer, nomadClient utils.JobAPI, logger *log.Logger) {
 	// List jobs tool
 	listJobsTool := mcp.NewTool("list_jobs",
 		mcp.WithDescription("List all jobs in Nomad"),
@@ -157,7 +157,7 @@ func RegisterJobTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 }
 
 // ListJobsHandler returns a handler for listing jobs
-func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListJobsHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -248,7 +248,7 @@ func ListJobsHandler(client *utils.NomadClient, logger *log.Logger) func(context
 }
 
 // GetJobHandler returns a handler for getting job details
-func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -281,7 +281,7 @@ func GetJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 }
 
 // RunJobHandler returns a handler for running a job
-func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func RunJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -314,7 +314,7 @@ func RunJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.C
 }
 
 // StopJobHandler returns a handler for stopping a job
-func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func StopJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -352,7 +352,7 @@ func StopJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 }
 
 // ScaleJobHandler returns a handler for scaling a job
-func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ScaleJobHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -399,7 +399,7 @@ func ScaleJobHandler(client *utils.NomadClient, logger *log.Logger) func(context
 }
 
 // GetJobAllocationsHandler returns a handler for getting job allocations
-func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobAllocationsHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -432,7 +432,7 @@ func GetJobAllocationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 }
 
 // GetJobEvaluationsHandler returns a handler for getting job evaluations
-func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobEvaluationsHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -465,7 +465,7 @@ func GetJobEvaluationsHandler(client *utils.NomadClient, logger *log.Logger) fun
 }
 
 // GetJobDeploymentsHandler returns a handler for getting job deployments
-func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobDeploymentsHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -498,7 +498,7 @@ func GetJobDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) fun
 }
 
 // GetJobSummaryHandler returns a handler for getting job summary
-func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobSummaryHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -531,7 +531,7 @@ func GetJobSummaryHandler(client *utils.NomadClient, logger *log.Logger) func(co
 }
 
 // GetJobServicesHandler returns a handler for getting job services
-func GetJobServicesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetJobServicesHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

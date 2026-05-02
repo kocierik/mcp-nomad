@@ -14,7 +14,7 @@ import (
 )
 
 // RegisterResources registers all resources with the MCP server
-func RegisterResources(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterResources(s *server.MCPServer, nomadClient utils.DynamicResourcesNomad, logger *log.Logger) {
 	// Register static resources
 	registerStaticResources(s, logger)
 
@@ -108,7 +108,7 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 }
 
 // registerDynamicResources registers dynamic resources
-func registerDynamicResources(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicResourcesNomad, logger *log.Logger) {
 	// Job specification resource
 	jobSpecTemplate := mcp.NewResourceTemplate(
 		"nomad://jobs/{job_id}/spec",

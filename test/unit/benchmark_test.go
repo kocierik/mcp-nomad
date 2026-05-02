@@ -1,6 +1,7 @@
 package unit
 
 import (
+	"context"
 	"testing"
 
 	"github.com/kocierik/mcp-nomad/test/mocks"
@@ -11,13 +12,13 @@ import (
 // BenchmarkMockClientListJobs benchmarks the mock client ListJobs method directly
 func BenchmarkMockClientListJobs(b *testing.B) {
 	mockClient := &mocks.MockNomadClient{}
-	mockClient.ListJobsFunc = func(namespace, status string) ([]types.JobSummary, error) {
+	mockClient.ListJobsFunc = func(_ context.Context, namespace, status string) ([]types.JobSummary, error) {
 		return testdata.SampleJobs, nil
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := mockClient.ListJobs("default", "")
+		_, err := mockClient.ListJobs(context.Background(), "default", "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -27,7 +28,7 @@ func BenchmarkMockClientListJobs(b *testing.B) {
 // BenchmarkMockClientGetJob benchmarks the mock client GetJob method directly
 func BenchmarkMockClientGetJob(b *testing.B) {
 	mockClient := &mocks.MockNomadClient{}
-	mockClient.GetJobFunc = func(jobID, namespace string) (types.Job, error) {
+	mockClient.GetJobFunc = func(_ context.Context, jobID, namespace string) (types.Job, error) {
 		return types.Job{
 			ID:   jobID,
 			Name: jobID,
@@ -37,7 +38,7 @@ func BenchmarkMockClientGetJob(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := mockClient.GetJob("test-job-1", "default")
+		_, err := mockClient.GetJob(context.Background(), "test-job-1", "default")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -47,7 +48,7 @@ func BenchmarkMockClientGetJob(b *testing.B) {
 // BenchmarkMockClientRunJob benchmarks the mock client RunJob method directly
 func BenchmarkMockClientRunJob(b *testing.B) {
 	mockClient := &mocks.MockNomadClient{}
-	mockClient.RunJobFunc = func(jobSpec string, detach bool) (map[string]interface{}, error) {
+	mockClient.RunJobFunc = func(_ context.Context, jobSpec string, detach bool) (map[string]interface{}, error) {
 		return map[string]interface{}{
 			"EvalID":         "eval-123",
 			"JobModifyIndex": 1,
@@ -56,7 +57,7 @@ func BenchmarkMockClientRunJob(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := mockClient.RunJob(testdata.SampleJobSpecs["simple"], false)
+		_, err := mockClient.RunJob(context.Background(), testdata.SampleJobSpecs["simple"], false)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -66,13 +67,13 @@ func BenchmarkMockClientRunJob(b *testing.B) {
 // BenchmarkMockClientListNodes benchmarks the mock client ListNodes method directly
 func BenchmarkMockClientListNodes(b *testing.B) {
 	mockClient := &mocks.MockNomadClient{}
-	mockClient.ListNodesFunc = func(status string) ([]types.NodeSummary, error) {
+	mockClient.ListNodesFunc = func(_ context.Context, status string) ([]types.NodeSummary, error) {
 		return testdata.SampleNodes, nil
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := mockClient.ListNodes("")
+		_, err := mockClient.ListNodes(context.Background(), "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -82,13 +83,13 @@ func BenchmarkMockClientListNodes(b *testing.B) {
 // BenchmarkMockClientGetAllocationLogs benchmarks the mock client GetAllocationLogs method directly
 func BenchmarkMockClientGetAllocationLogs(b *testing.B) {
 	mockClient := &mocks.MockNomadClient{}
-	mockClient.GetAllocationLogsFunc = func(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+	mockClient.GetAllocationLogsFunc = func(_ context.Context, allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
 		return testdata.SampleLogs["nginx_stdout"], nil
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := mockClient.GetAllocationLogs("alloc-1", "nginx", "stdout", false, 0, 0)
+		_, err := mockClient.GetAllocationLogs(context.Background(), "alloc-1", "nginx", "stdout", false, 0, 0)
 		if err != nil {
 			b.Fatal(err)
 		}

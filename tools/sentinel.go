@@ -13,7 +13,7 @@ import (
 )
 
 // RegisterSentinelTools registers all Sentinel-related tools with the MCP server
-func RegisterSentinelTools(s *server.MCPServer, client *utils.NomadClient, logger *log.Logger) {
+func RegisterSentinelTools(s *server.MCPServer, client utils.SentinelAPI, logger *log.Logger) {
 	// List policies tool
 	listPoliciesTool := mcp.NewTool("list_sentinel_policies",
 		mcp.WithDescription("List all Sentinel policies"),
@@ -68,7 +68,7 @@ func RegisterSentinelTools(s *server.MCPServer, client *utils.NomadClient, logge
 }
 
 // ListSentinelPoliciesHandler returns a handler for listing Sentinel policies
-func ListSentinelPoliciesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListSentinelPoliciesHandler(client utils.SentinelAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		policies, err := client.ListSentinelPolicies(ctx)
 		if err != nil {
@@ -86,7 +86,7 @@ func ListSentinelPoliciesHandler(client *utils.NomadClient, logger *log.Logger) 
 }
 
 // GetSentinelPolicyHandler returns a handler for getting Sentinel policy details
-func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetSentinelPolicyHandler(client utils.SentinelAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -114,7 +114,7 @@ func GetSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) fun
 }
 
 // CreateSentinelPolicyHandler returns a handler for creating a Sentinel policy
-func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateSentinelPolicyHandler(client utils.SentinelAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -156,7 +156,7 @@ func CreateSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) 
 }
 
 // DeleteSentinelPolicyHandler returns a handler for deleting a Sentinel policy
-func DeleteSentinelPolicyHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeleteSentinelPolicyHandler(client utils.SentinelAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

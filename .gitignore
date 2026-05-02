@@ -21,6 +21,11 @@
 go.work
 go.work.sum
 
+# Local Go toolchain cache (e.g. TMPDIR/GOCACHE in workspace)
+/.gocache/
+/.gomodcache/
+/.tmp/
+
 # env file
 .env
 

@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterClusterTools registers all cluster-related tools
-func RegisterClusterTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterClusterTools(s *server.MCPServer, nomadClient utils.ClusterToolsAPI, logger *log.Logger) {
 	// Get cluster leader tool
 	getClusterLeaderTool := mcp.NewTool("get_cluster_leader",
 		mcp.WithDescription("Get the current leader and the information relative the Nomad peers"),
@@ -32,7 +32,7 @@ func RegisterClusterTools(s *server.MCPServer, nomadClient *utils.NomadClient, l
 	s.AddTool(listRegionsTool, ListRegionsHandler(nomadClient, logger))
 }
 
-func GetClusterLeaderHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetClusterLeaderHandler(client utils.ClusterToolsAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		body, err := client.MakeRequest(ctx, "GET", "operator/raft/configuration", nil, nil)
 		if err != nil {
@@ -94,7 +94,7 @@ func GetClusterLeaderHandler(client *utils.NomadClient, logger *log.Logger) func
 }
 
 // ListClusterPeersHandler returns a handler for listing cluster peers
-func ListClusterPeersHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListClusterPeersHandler(client utils.ClusterToolsAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		body, err := client.ListClusterPeers(ctx)
 
@@ -136,7 +136,7 @@ func ListClusterPeersHandler(client *utils.NomadClient, logger *log.Logger) func
 }
 
 // ListRegionsHandler returns a handler for listing regions
-func ListRegionsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListRegionsHandler(client utils.ClusterToolsAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		body, err := client.MakeRequest(ctx, "GET", "regions", nil, nil)
 		if err != nil {

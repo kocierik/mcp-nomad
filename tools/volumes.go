@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterVolumeTools registers all volume-related tools
-func RegisterVolumeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterVolumeTools(s *server.MCPServer, nomadClient utils.VolumeAPI, logger *log.Logger) {
 	// List volumes tool
 	listVolumesTool := mcp.NewTool("list_volumes",
 		mcp.WithDescription("List all volumes in a namespace"),
@@ -50,7 +50,7 @@ func RegisterVolumeTools(s *server.MCPServer, nomadClient *utils.NomadClient, lo
 }
 
 // ListVolumesHandler returns a handler for listing volumes
-func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListVolumesHandler(client utils.VolumeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -90,7 +90,7 @@ func ListVolumesHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 }
 
 // GetVolumeHandler returns a handler for getting volume details
-func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetVolumeHandler(client utils.VolumeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -120,7 +120,7 @@ func GetVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 }
 
 // DeleteVolumeHandler returns a handler for deleting a volume
-func DeleteVolumeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeleteVolumeHandler(client utils.VolumeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

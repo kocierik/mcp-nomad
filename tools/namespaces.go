@@ -14,7 +14,7 @@ import (
 )
 
 // RegisterNamespaceTools registers all namespace-related tools
-func RegisterNamespaceTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterNamespaceTools(s *server.MCPServer, nomadClient utils.NamespaceAPI, logger *log.Logger) {
 	// List namespaces tool
 	listNamespacesTool := mcp.NewTool("list_namespaces",
 		mcp.WithDescription("List all namespaces in Nomad"),
@@ -46,7 +46,7 @@ func RegisterNamespaceTools(s *server.MCPServer, nomadClient *utils.NomadClient,
 }
 
 // ListNamespacesHandler returns a handler for listing namespaces
-func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListNamespacesHandler(client utils.NamespaceAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		namespaces, err := client.ListNamespaces(ctx)
 		if err != nil {
@@ -64,7 +64,7 @@ func ListNamespacesHandler(client *utils.NomadClient, logger *log.Logger) func(c
 }
 
 // CreateNamespaceHandler returns a handler for creating a namespace
-func CreateNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateNamespaceHandler(client utils.NamespaceAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -106,7 +106,7 @@ func CreateNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(
 }
 
 // DeleteNamespaceHandler returns a handler for deleting a namespace
-func DeleteNamespaceHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeleteNamespaceHandler(client utils.NamespaceAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

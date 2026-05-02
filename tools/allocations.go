@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterAllocationTools registers all allocation-related tools
-func RegisterAllocationTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterAllocationTools(s *server.MCPServer, nomadClient utils.AllocationAPI, logger *log.Logger) {
 	// List allocations tool
 	listAllocationsTool := mcp.NewTool("list_allocations",
 		mcp.WithDescription("List all allocations in Nomad"),
@@ -47,7 +47,7 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient *utils.NomadClient
 }
 
 // ListAllocationsHandler returns a handler for listing allocations
-func ListAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListAllocationsHandler(client utils.AllocationAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		allocations, err := client.ListAllocations(ctx)
 		if err != nil {
@@ -65,7 +65,7 @@ func ListAllocationsHandler(client *utils.NomadClient, logger *log.Logger) func(
 }
 
 // GetAllocationHandler returns a handler for getting allocation details
-func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetAllocationHandler(client utils.AllocationAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -93,7 +93,7 @@ func GetAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(co
 }
 
 // StopAllocationHandler returns a handler for stopping an allocation
-func StopAllocationHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func StopAllocationHandler(client utils.AllocationAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

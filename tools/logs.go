@@ -11,7 +11,7 @@ import (
 )
 
 // RegisterLogTools registers all log-related tools
-func RegisterLogTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterLogTools(s *server.MCPServer, nomadClient utils.LogAPI, logger *log.Logger) {
 	// Get allocation logs tool
 	getAllocationLogsTool := mcp.NewTool("get_allocation_logs",
 		mcp.WithDescription("Get logs from a specific task in an allocation"),
@@ -41,7 +41,7 @@ func RegisterLogTools(s *server.MCPServer, nomadClient *utils.NomadClient, logge
 }
 
 // GetAllocationLogsHandler returns a handler for getting allocation logs
-func GetAllocationLogsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetAllocationLogsHandler(client utils.LogAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

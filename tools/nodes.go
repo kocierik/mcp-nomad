@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterNodeTools registers all node-related tools
-func RegisterNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterNodeTools(s *server.MCPServer, nomadClient utils.NodeAPI, logger *log.Logger) {
 	// List nodes tool
 	listNodesTool := mcp.NewTool("list_nodes",
 		mcp.WithDescription("List all nodes in the Nomad cluster"),
@@ -66,7 +66,7 @@ func RegisterNodeTools(s *server.MCPServer, nomadClient *utils.NomadClient, logg
 }
 
 // ListNodesHandler returns a handler for listing nodes
-func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListNodesHandler(client utils.NodeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -94,7 +94,7 @@ func ListNodesHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 }
 
 // GetNodeHandler returns a handler for getting node details
-func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetNodeHandler(client utils.NodeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -122,7 +122,7 @@ func GetNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.
 }
 
 // DrainNodeHandler returns a handler for draining a node
-func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DrainNodeHandler(client utils.NodeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -164,7 +164,7 @@ func DrainNodeHandler(client *utils.NomadClient, logger *log.Logger) func(contex
 }
 
 // EligibilityNodeHandler returns a handler for setting node eligibility
-func EligibilityNodeHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func EligibilityNodeHandler(client utils.NodeAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

@@ -101,6 +101,7 @@ go test -v -bench=. ./test/...
 ### Environment Variables
 
 - `NOMAD_ADDR`: Nomad server address (default: http://localhost:4646)
+- `NOMAD_REGION`: forwarded as the `region` query parameter on REST calls when not already set (matches Nomad CLI semantics for multi-region clusters)
 - `NOMAD_TOKEN`: Nomad ACL token (optional)
 - `SKIP_INTEGRATION`: Skip integration tests (default: false)
 
@@ -115,20 +116,19 @@ Test data is centralized in `test/testdata/sample_data.go` and includes:
 ## Mock Implementation
 
 The mock implementation (`test/mocks/nomad_client_mock.go`) provides:
-- Complete interface implementation
+- Implements the same narrow tool interfaces as `*utils.NomadClient` (`JobAPI`, `NodeAPI`, … in `utils/nomad_tool_interfaces.go`), with compile-time assertions
 - Configurable behavior via function pointers
-- Support for all NomadClient methods
 - Easy setup for different test scenarios
 
 ### Example Usage
 
 ```go
 mockClient := &mocks.MockNomadClient{}
-mockClient.ListJobsFunc = func(namespace, status string) ([]types.JobSummary, error) {
+mockClient.ListJobsFunc = func(ctx context.Context, namespace, status string) ([]types.JobSummary, error) {
     return testdata.SampleJobs, nil
 }
 
-jobs, err := mockClient.ListJobs("default", "")
+jobs, err := mockClient.ListJobs(context.Background(), "default", "")
 // Test assertions...
 ```
 

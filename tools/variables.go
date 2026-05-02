@@ -13,7 +13,7 @@ import (
 )
 
 // RegisterVariableTools registers all variable-related tools
-func RegisterVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterVariableTools(s *server.MCPServer, nomadClient utils.VariableAPI, logger *log.Logger) {
 	// List variables tool
 	listVariablesTool := mcp.NewTool("list_variables",
 		mcp.WithDescription("List all variables in Nomad"),
@@ -94,7 +94,7 @@ func RegisterVariableTools(s *server.MCPServer, nomadClient *utils.NomadClient, 
 }
 
 // ListVariablesHandler returns a handler for listing variables
-func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListVariablesHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -142,7 +142,7 @@ func ListVariablesHandler(client *utils.NomadClient, logger *log.Logger) func(co
 }
 
 // GetVariableHandler returns a handler for getting variable details
-func GetVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetVariableHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -175,7 +175,7 @@ func GetVariableHandler(client *utils.NomadClient, logger *log.Logger) func(cont
 }
 
 // CreateVariableHandler returns a handler for creating a variable
-func CreateVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func CreateVariableHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -264,7 +264,7 @@ func CreateVariableHandler(client *utils.NomadClient, logger *log.Logger) func(c
 }
 
 // DeleteVariableHandler returns a handler for deleting a variable
-func DeleteVariableHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func DeleteVariableHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

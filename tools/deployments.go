@@ -12,7 +12,7 @@ import (
 )
 
 // RegisterDeploymentTools registers all deployment-related tools
-func RegisterDeploymentTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func RegisterDeploymentTools(s *server.MCPServer, nomadClient utils.DeploymentAPI, logger *log.Logger) {
 	// List deployments tool
 	listDeploymentsTool := mcp.NewTool("list_deployments",
 		mcp.WithDescription("List all deployments"),
@@ -34,7 +34,7 @@ func RegisterDeploymentTools(s *server.MCPServer, nomadClient *utils.NomadClient
 }
 
 // ListDeploymentsHandler returns a handler for listing deployments
-func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ListDeploymentsHandler(client utils.DeploymentAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -62,7 +62,7 @@ func ListDeploymentsHandler(client *utils.NomadClient, logger *log.Logger) func(
 }
 
 // GetDeploymentHandler returns a handler for getting deployment details
-func GetDeploymentHandler(client *utils.NomadClient, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func GetDeploymentHandler(client utils.DeploymentAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		arguments, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {

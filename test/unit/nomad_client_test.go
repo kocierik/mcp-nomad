@@ -1,6 +1,7 @@
 package unit
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestNomadClient_ListJobs(t *testing.T) {
 		name          string
 		namespace     string
 		status        string
-		mockFunc      func(namespace, status string) ([]types.JobSummary, error)
+		mockFunc      func(context.Context, string, string) ([]types.JobSummary, error)
 		expectedJobs  []types.JobSummary
 		expectedError string
 	}{
@@ -24,7 +25,7 @@ func TestNomadClient_ListJobs(t *testing.T) {
 			name:      "successful list jobs",
 			namespace: "default",
 			status:    "",
-			mockFunc: func(namespace, status string) ([]types.JobSummary, error) {
+			mockFunc: func(_ context.Context, namespace, status string) ([]types.JobSummary, error) {
 				return testdata.SampleJobs, nil
 			},
 			expectedJobs:  testdata.SampleJobs,
@@ -34,7 +35,7 @@ func TestNomadClient_ListJobs(t *testing.T) {
 			name:      "list jobs with status filter",
 			namespace: "default",
 			status:    "running",
-			mockFunc: func(namespace, status string) ([]types.JobSummary, error) {
+			mockFunc: func(_ context.Context, namespace, status string) ([]types.JobSummary, error) {
 				// Return first job for running status
 				return []types.JobSummary{testdata.SampleJobs[0]}, nil
 			},
@@ -45,7 +46,7 @@ func TestNomadClient_ListJobs(t *testing.T) {
 			name:      "error from API",
 			namespace: "default",
 			status:    "",
-			mockFunc: func(namespace, status string) ([]types.JobSummary, error) {
+			mockFunc: func(_ context.Context, namespace, status string) ([]types.JobSummary, error) {
 				return nil, errors.New("API error")
 			},
 			expectedJobs:  nil,
@@ -58,7 +59,7 @@ func TestNomadClient_ListJobs(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.ListJobsFunc = tt.mockFunc
 
-			jobs, err := mockClient.ListJobs(tt.namespace, tt.status)
+			jobs, err := mockClient.ListJobs(context.Background(), tt.namespace, tt.status)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -76,7 +77,7 @@ func TestNomadClient_GetJob(t *testing.T) {
 		name          string
 		jobID         string
 		namespace     string
-		mockFunc      func(jobID, namespace string) (types.Job, error)
+		mockFunc      func(context.Context, string, string) (types.Job, error)
 		expectedJob   types.Job
 		expectedError string
 	}{
@@ -84,7 +85,7 @@ func TestNomadClient_GetJob(t *testing.T) {
 			name:      "successful get job",
 			jobID:     "test-job-1",
 			namespace: "default",
-			mockFunc: func(jobID, namespace string) (types.Job, error) {
+			mockFunc: func(_ context.Context, jobID, namespace string) (types.Job, error) {
 				return types.Job{
 					ID:   jobID,
 					Name: jobID,
@@ -102,7 +103,7 @@ func TestNomadClient_GetJob(t *testing.T) {
 			name:      "job not found",
 			jobID:     "nonexistent-job",
 			namespace: "default",
-			mockFunc: func(jobID, namespace string) (types.Job, error) {
+			mockFunc: func(_ context.Context, jobID, namespace string) (types.Job, error) {
 				return types.Job{}, errors.New("job not found")
 			},
 			expectedJob:   types.Job{},
@@ -115,7 +116,7 @@ func TestNomadClient_GetJob(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.GetJobFunc = tt.mockFunc
 
-			job, err := mockClient.GetJob(tt.jobID, tt.namespace)
+			job, err := mockClient.GetJob(context.Background(), tt.jobID, tt.namespace)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -133,7 +134,7 @@ func TestNomadClient_RunJob(t *testing.T) {
 		name           string
 		jobSpec        string
 		detach         bool
-		mockFunc       func(jobSpec string, detach bool) (map[string]interface{}, error)
+		mockFunc       func(context.Context, string, bool) (map[string]interface{}, error)
 		expectedResult map[string]interface{}
 		expectedError  string
 	}{
@@ -141,7 +142,7 @@ func TestNomadClient_RunJob(t *testing.T) {
 			name:    "successful run job",
 			jobSpec: testdata.SampleJobSpecs["simple"],
 			detach:  false,
-			mockFunc: func(jobSpec string, detach bool) (map[string]interface{}, error) {
+			mockFunc: func(_ context.Context, jobSpec string, detach bool) (map[string]interface{}, error) {
 				return map[string]interface{}{
 					"EvalID":         "eval-123",
 					"JobModifyIndex": 1,
@@ -157,7 +158,7 @@ func TestNomadClient_RunJob(t *testing.T) {
 			name:    "run job with detach",
 			jobSpec: testdata.SampleJobSpecs["simple"],
 			detach:  true,
-			mockFunc: func(jobSpec string, detach bool) (map[string]interface{}, error) {
+			mockFunc: func(_ context.Context, jobSpec string, detach bool) (map[string]interface{}, error) {
 				return map[string]interface{}{
 					"EvalID": "eval-456",
 				}, nil
@@ -171,7 +172,7 @@ func TestNomadClient_RunJob(t *testing.T) {
 			name:    "invalid job spec",
 			jobSpec: testdata.SampleJobSpecs["invalid"],
 			detach:  false,
-			mockFunc: func(jobSpec string, detach bool) (map[string]interface{}, error) {
+			mockFunc: func(_ context.Context, jobSpec string, detach bool) (map[string]interface{}, error) {
 				return nil, errors.New("invalid job specification")
 			},
 			expectedResult: nil,
@@ -184,7 +185,7 @@ func TestNomadClient_RunJob(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.RunJobFunc = tt.mockFunc
 
-			result, err := mockClient.RunJob(tt.jobSpec, tt.detach)
+			result, err := mockClient.RunJob(context.Background(), tt.jobSpec, tt.detach)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -201,14 +202,14 @@ func TestNomadClient_ListNodes(t *testing.T) {
 	tests := []struct {
 		name          string
 		status        string
-		mockFunc      func(status string) ([]types.NodeSummary, error)
+		mockFunc      func(context.Context, string) ([]types.NodeSummary, error)
 		expectedNodes []types.NodeSummary
 		expectedError string
 	}{
 		{
 			name:   "successful list nodes",
 			status: "",
-			mockFunc: func(status string) ([]types.NodeSummary, error) {
+			mockFunc: func(_ context.Context, status string) ([]types.NodeSummary, error) {
 				return testdata.SampleNodes, nil
 			},
 			expectedNodes: testdata.SampleNodes,
@@ -217,7 +218,7 @@ func TestNomadClient_ListNodes(t *testing.T) {
 		{
 			name:   "list nodes with status filter",
 			status: "ready",
-			mockFunc: func(status string) ([]types.NodeSummary, error) {
+			mockFunc: func(_ context.Context, status string) ([]types.NodeSummary, error) {
 				// Return first node for ready status
 				return []types.NodeSummary{testdata.SampleNodes[0]}, nil
 			},
@@ -227,7 +228,7 @@ func TestNomadClient_ListNodes(t *testing.T) {
 		{
 			name:   "error from API",
 			status: "",
-			mockFunc: func(status string) ([]types.NodeSummary, error) {
+			mockFunc: func(_ context.Context, status string) ([]types.NodeSummary, error) {
 				return nil, errors.New("API error")
 			},
 			expectedNodes: nil,
@@ -240,7 +241,7 @@ func TestNomadClient_ListNodes(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.ListNodesFunc = tt.mockFunc
 
-			nodes, err := mockClient.ListNodes(tt.status)
+			nodes, err := mockClient.ListNodes(context.Background(), tt.status)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -262,7 +263,7 @@ func TestNomadClient_GetAllocationLogs(t *testing.T) {
 		follow        bool
 		tail          int64
 		offset        int64
-		mockFunc      func(allocID, task, logType string, follow bool, tail, offset int64) (string, error)
+		mockFunc      func(context.Context, string, string, string, bool, int64, int64) (string, error)
 		expectedLogs  string
 		expectedError string
 	}{
@@ -274,7 +275,7 @@ func TestNomadClient_GetAllocationLogs(t *testing.T) {
 			follow:  false,
 			tail:    0,
 			offset:  0,
-			mockFunc: func(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+			mockFunc: func(_ context.Context, allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
 				return testdata.SampleLogs["nginx_stdout"], nil
 			},
 			expectedLogs:  testdata.SampleLogs["nginx_stdout"],
@@ -288,7 +289,7 @@ func TestNomadClient_GetAllocationLogs(t *testing.T) {
 			follow:  false,
 			tail:    2,
 			offset:  0,
-			mockFunc: func(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+			mockFunc: func(_ context.Context, allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
 				// Simulate tail functionality
 				lines := []string{
 					"2024-01-01T10:00:02Z [INFO] Server started on port 80",
@@ -307,7 +308,7 @@ func TestNomadClient_GetAllocationLogs(t *testing.T) {
 			follow:  false,
 			tail:    0,
 			offset:  0,
-			mockFunc: func(allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
+			mockFunc: func(_ context.Context, allocID, task, logType string, follow bool, tail, offset int64) (string, error) {
 				return "", errors.New("allocation not found")
 			},
 			expectedLogs:  "",
@@ -320,7 +321,7 @@ func TestNomadClient_GetAllocationLogs(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.GetAllocationLogsFunc = tt.mockFunc
 
-			logs, err := mockClient.GetAllocationLogs(tt.allocID, tt.task, tt.logType, tt.follow, tt.tail, tt.offset)
+			logs, err := mockClient.GetAllocationLogs(context.Background(), tt.allocID, tt.task, tt.logType, tt.follow, tt.tail, tt.offset)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -340,7 +341,7 @@ func TestNomadClient_CreateVariable(t *testing.T) {
 		namespace     string
 		cas           int
 		lockOperation string
-		mockFunc      func(variable types.Variable, namespace string, cas int, lockOperation string) error
+		mockFunc      func(context.Context, types.Variable, string, int, string) error
 		expectedError string
 	}{
 		{
@@ -352,7 +353,7 @@ func TestNomadClient_CreateVariable(t *testing.T) {
 			namespace:     "default",
 			cas:           0,
 			lockOperation: "",
-			mockFunc: func(variable types.Variable, namespace string, cas int, lockOperation string) error {
+			mockFunc: func(_ context.Context, variable types.Variable, namespace string, cas int, lockOperation string) error {
 				return nil
 			},
 			expectedError: "",
@@ -366,7 +367,7 @@ func TestNomadClient_CreateVariable(t *testing.T) {
 			namespace:     "default",
 			cas:           123,
 			lockOperation: "",
-			mockFunc: func(variable types.Variable, namespace string, cas int, lockOperation string) error {
+			mockFunc: func(_ context.Context, variable types.Variable, namespace string, cas int, lockOperation string) error {
 				return nil
 			},
 			expectedError: "",
@@ -380,7 +381,7 @@ func TestNomadClient_CreateVariable(t *testing.T) {
 			namespace:     "default",
 			cas:           0,
 			lockOperation: "",
-			mockFunc: func(variable types.Variable, namespace string, cas int, lockOperation string) error {
+			mockFunc: func(_ context.Context, variable types.Variable, namespace string, cas int, lockOperation string) error {
 				return errors.New("variable already exists")
 			},
 			expectedError: "variable already exists",
@@ -392,7 +393,7 @@ func TestNomadClient_CreateVariable(t *testing.T) {
 			mockClient := &mocks.MockNomadClient{}
 			mockClient.CreateVariableFunc = tt.mockFunc
 
-			err := mockClient.CreateVariable(tt.variable, tt.namespace, tt.cas, tt.lockOperation)
+			err := mockClient.CreateVariable(context.Background(), tt.variable, tt.namespace, tt.cas, tt.lockOperation)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
