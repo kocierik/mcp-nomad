@@ -4,6 +4,8 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.2.9] — 2026-05-02
+
 ### Added
 
 - TLS for the Nomad HTTP client via `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, and `NOMAD_TLS_SERVER_NAME`.
@@ -68,7 +70,8 @@ Dependabot merges in this timeframe include [#12](https://github.com/kocierik/mc
 
 ---
 
-[Unreleased]: https://github.com/kocierik/mcp-nomad/compare/v0.2.8...HEAD
+[Unreleased]: https://github.com/kocierik/mcp-nomad/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/kocierik/mcp-nomad/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/kocierik/mcp-nomad/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/kocierik/mcp-nomad/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/kocierik/mcp-nomad/compare/v0.2.5...v0.2.6
