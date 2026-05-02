@@ -8,365 +8,321 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+const (
+	guideJSONTools = "Tool results are JSON text. Summarize for humans: IDs, status fields, counts, and errors first. " +
+		"When listing many items, highlight anomalies (failed, draining, dead). " +
+		"If the user asked for a comparison or diagnosis, structure bullets with evidence from the payload."
+)
+
 // RegisterPrompts registers all prompts for the Nomad MCP server
 func RegisterPrompts(s *server.MCPServer) {
-	// Job management prompt
+	registerJobPrompts(s)
+	registerNodePrompts(s)
+	registerNamespacePrompts(s)
+	registerVariablePrompts(s)
+	registerACLPrompts(s)
+}
+
+func registerJobPrompts(s *server.MCPServer) {
 	s.AddPrompt(mcp.NewPrompt("job_management",
-		mcp.WithPromptDescription("Assist with Nomad job management tasks"),
+		mcp.WithPromptDescription("Nomad jobs: maps actions to MCP tools list_jobs, get_job, run_job, stop_job, scale_job, and related job tools"),
 		mcp.WithArgument("action",
-			mcp.ArgumentDescription("The action to perform (list, get, run, stop, scale)"),
+			mcp.ArgumentDescription("list | get | run | stop | scale"),
 			mcp.RequiredArgument(),
 		),
 		mcp.WithArgument("job_id",
-			mcp.ArgumentDescription("The ID of the job (required for get, stop, scale)"),
+			mcp.ArgumentDescription("Required for get, stop, scale (Nomad job ID / name)"),
 		),
 		mcp.WithArgument("namespace",
-			mcp.ArgumentDescription("The namespace to operate in (default: default)"),
+			mcp.ArgumentDescription("Target namespace; omit to use NOMAD_NAMESPACE env or default"),
 		),
 	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		action := request.Params.Arguments["action"]
 		jobID := request.Params.Arguments["job_id"]
-		namespace := request.Params.Arguments["namespace"]
-		if namespace == "" {
-			namespace = "default"
-		}
+		namespace := effectiveNamespaceFromPrompt(request.Params.Arguments)
+
+		sys := fmt.Sprintf("You are a Nomad job assistant. Effective namespace for tools is %q (prompt `namespace` argument, then NOMAD_NAMESPACE env, else default). "+
+			"Prefer the smallest set of tool calls. Multi-region clusters: NOMAD_REGION is forwarded on API requests when set. "+
+			"%s "+
+			"Relevant tools: list_jobs, get_job, run_job, stop_job, scale_job, get_job_allocations, get_job_evaluations, get_job_deployments, get_job_summary, get_job_services.",
+			namespace, guideJSONTools)
 
 		var messages []mcp.PromptMessage
-		messages = append(messages, mcp.NewPromptMessage(
-			"system",
-			mcp.NewTextContent("You are a Nomad job management assistant. Help users manage their Nomad jobs effectively."),
-		))
+		messages = append(messages, mcp.NewPromptMessage("system", mcp.NewTextContent(sys)))
 
 		switch action {
 		case "list":
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you list jobs in the %s namespace. You can filter by status (pending, running, dead) if needed.", namespace)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **list_jobs** with namespace %q and optional status (pending, running, dead). "+
+					"If the user needs full job objects, follow with **get_job** per ID. Explain ListJobs may return enriched summaries when the server merges stub+summary+get.", namespace),
+			)))
 		case "get":
 			if jobID == "" {
 				return nil, fmt.Errorf("job_id is required for get action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you get details for job %s in the %s namespace.", jobID, namespace)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **get_job** with job_id %q, namespace %q. Point out Type, Status, TaskGroups, allocations count if present.", jobID, namespace),
+			)))
 		case "run":
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent("I'll help you run a new job. Please provide the job specification in HCL or JSON format."),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				"Use **run_job** with job_spec (HCL or JSON) and optional detach. After success, mention EvalID / modify index if returned; suggest get_job or list_jobs to verify.",
+			)))
 		case "stop":
 			if jobID == "" {
 				return nil, fmt.Errorf("job_id is required for stop action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you stop job %s in the %s namespace. You can also purge the job if needed.", jobID, namespace)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **stop_job** with job_id %q, namespace %q, purge if the user wants removal from state.", jobID, namespace),
+			)))
 		case "scale":
 			if jobID == "" {
 				return nil, fmt.Errorf("job_id is required for scale action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you scale job %s in the %s namespace. Please specify the task group and desired count.", jobID, namespace)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **scale_job** with job_id %q, namespace %q, plus task group name and integer count from the user.", jobID, namespace),
+			)))
 		default:
 			return nil, fmt.Errorf("invalid action: %s", action)
 		}
 
-		return mcp.NewGetPromptResult(
-			"Nomad Job Management",
-			messages,
-		), nil
+		return mcp.NewGetPromptResult("Nomad Job Management", messages), nil
 	})
+}
 
-	// Node management prompt
+func registerNodePrompts(s *server.MCPServer) {
 	s.AddPrompt(mcp.NewPrompt("node_management",
-		mcp.WithPromptDescription("Assist with Nomad node management tasks"),
+		mcp.WithPromptDescription("Nomad clients: list_nodes, get_node, drain_node, eligibility_node"),
 		mcp.WithArgument("action",
-			mcp.ArgumentDescription("The action to perform (list, get, drain, eligibility)"),
+			mcp.ArgumentDescription("list | get | drain | eligibility"),
 			mcp.RequiredArgument(),
 		),
 		mcp.WithArgument("node_id",
-			mcp.ArgumentDescription("The ID of the node (required for get, drain, eligibility)"),
+			mcp.ArgumentDescription("Required for get, drain, eligibility (Nomad node ID)"),
 		),
 	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		action := request.Params.Arguments["action"]
 		nodeID := request.Params.Arguments["node_id"]
 
+		sys := "You are a Nomad node assistant. " + guideJSONTools + " Tools: list_nodes, get_node, drain_node, eligibility_node."
 		var messages []mcp.PromptMessage
-		messages = append(messages, mcp.NewPromptMessage(
-			"system",
-			mcp.NewTextContent("You are a Nomad node management assistant. Help users manage their Nomad nodes effectively."),
-		))
+		messages = append(messages, mcp.NewPromptMessage("system", mcp.NewTextContent(sys)))
 
 		switch action {
 		case "list":
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent("I'll help you list nodes in the cluster. You can filter by status (ready, down) if needed."),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				"Use **list_nodes** with optional status filter when the user cares about ready/down. Highlight scheduling health and drain flags from each summary.",
+			)))
 		case "get":
 			if nodeID == "" {
 				return nil, fmt.Errorf("node_id is required for get action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you get details for node %s.", nodeID)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **get_node** for node_id %q. Explain Status, Drain, SchedulingEligibility and host/driver info.", nodeID),
+			)))
 		case "drain":
 			if nodeID == "" {
 				return nil, fmt.Errorf("node_id is required for drain action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you manage drain mode for node %s. Please specify whether to enable or disable drain mode.", nodeID)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **drain_node** for %q with enable true/false and deadline seconds if the user specifies maintenance windows.", nodeID),
+			)))
 		case "eligibility":
 			if nodeID == "" {
 				return nil, fmt.Errorf("node_id is required for eligibility action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you set eligibility for node %s. Please specify whether to make it eligible or ineligible.", nodeID)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **eligibility_node** for %q; eligible argument is typically `eligible` or `ineligible` per Nomad API.", nodeID),
+			)))
 		default:
 			return nil, fmt.Errorf("invalid action: %s", action)
 		}
 
-		return mcp.NewGetPromptResult(
-			"Nomad Node Management",
-			messages,
-		), nil
+		return mcp.NewGetPromptResult("Nomad Node Management", messages), nil
 	})
+}
 
-	// Namespace management prompt
+func registerNamespacePrompts(s *server.MCPServer) {
 	s.AddPrompt(mcp.NewPrompt("namespace_management",
-		mcp.WithPromptDescription("Assist with Nomad namespace management tasks"),
+		mcp.WithPromptDescription("Namespaces: list_namespaces, create_namespace, delete_namespace"),
 		mcp.WithArgument("action",
-			mcp.ArgumentDescription("The action to perform (list, create, delete)"),
+			mcp.ArgumentDescription("list | create | delete"),
 			mcp.RequiredArgument(),
 		),
 		mcp.WithArgument("name",
-			mcp.ArgumentDescription("The name of the namespace (required for create, delete)"),
+			mcp.ArgumentDescription("Namespace name (required for create and delete)"),
 		),
 		mcp.WithArgument("description",
-			mcp.ArgumentDescription("Description of the namespace (optional for create)"),
+			mcp.ArgumentDescription("Optional description when creating"),
 		),
 	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		action := request.Params.Arguments["action"]
 		name := request.Params.Arguments["name"]
 		description := request.Params.Arguments["description"]
 
+		sys := "You are a Nomad namespace assistant. " + guideJSONTools + " Tools: list_namespaces, create_namespace, delete_namespace."
 		var messages []mcp.PromptMessage
-		messages = append(messages, mcp.NewPromptMessage(
-			"system",
-			mcp.NewTextContent("You are a Nomad namespace management assistant. Help users manage their Nomad namespaces effectively."),
-		))
+		messages = append(messages, mcp.NewPromptMessage("system", mcp.NewTextContent(sys)))
 
 		switch action {
 		case "list":
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent("I'll help you list all namespaces in Nomad."),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				"Use **list_namespaces**. Summarize Name and Description columns; warn if production and default coexist.",
+			)))
 		case "create":
 			if name == "" {
 				return nil, fmt.Errorf("name is required for create action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you create namespace %s%s.", name, func() string {
-					if description != "" {
-						return fmt.Sprintf(" with description: %s", description)
-					}
-					return ""
-				}())),
-			))
+			createHint := ""
+			if description != "" {
+				createHint = fmt.Sprintf(" Description: %q.", description)
+			}
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **create_namespace** with Name %q.%s Confirm with list_namespaces if needed.", name, createHint),
+			)))
 		case "delete":
 			if name == "" {
 				return nil, fmt.Errorf("name is required for delete action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you delete namespace %s.", name)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **delete_namespace** for %q only after the user acknowledges impact on workloads in that namespace.", name),
+			)))
 		default:
 			return nil, fmt.Errorf("invalid action: %s", action)
 		}
 
-		return mcp.NewGetPromptResult(
-			"Nomad Namespace Management",
-			messages,
-		), nil
+		return mcp.NewGetPromptResult("Nomad Namespace Management", messages), nil
 	})
+}
 
-	// Variable management prompt
+func registerVariablePrompts(s *server.MCPServer) {
 	s.AddPrompt(mcp.NewPrompt("variable_management",
-		mcp.WithPromptDescription("Assist with Nomad variable management tasks"),
+		mcp.WithPromptDescription("Nomad Variables: list_variables, get_variable, create_variable, delete_variable"),
 		mcp.WithArgument("action",
-			mcp.ArgumentDescription("The action to perform (list, get, create, delete)"),
+			mcp.ArgumentDescription("list | get | create | delete"),
 			mcp.RequiredArgument(),
 		),
 		mcp.WithArgument("path",
-			mcp.ArgumentDescription("The path of the variable (required for get, create, delete)"),
+			mcp.ArgumentDescription("Variable path (required for get, create, delete)"),
+		),
+		mcp.WithArgument("namespace",
+			mcp.ArgumentDescription("Variable namespace; omit to use NOMAD_NAMESPACE env or default"),
 		),
 	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		action := request.Params.Arguments["action"]
 		path := request.Params.Arguments["path"]
+		namespace := effectiveNamespaceFromPrompt(request.Params.Arguments)
 
+		sys := "You are a Nomad Variables assistant. Namespace matches tools via prompt `namespace` or NOMAD_NAMESPACE. " + guideJSONTools + " Tools: list_variables, get_variable, create_variable, delete_variable."
 		var messages []mcp.PromptMessage
-		messages = append(messages, mcp.NewPromptMessage(
-			"system",
-			mcp.NewTextContent("You are a Nomad variable management assistant. Help users manage their Nomad variables effectively."),
-		))
+		messages = append(messages, mcp.NewPromptMessage("system", mcp.NewTextContent(sys)))
 
 		switch action {
 		case "list":
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent("I'll help you list variables in Nomad. You can optionally filter by prefix."),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **list_variables** with namespace %q and optional prefix, next_token, per_page, filter from the user.", namespace),
+			)))
 		case "get":
 			if path == "" {
 				return nil, fmt.Errorf("path is required for get action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you get the variable at path %s.", path)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **get_variable** for path %q in namespace %q. Variables store Items as structured data; summarize keys, not secrets, unless the user owns the cluster.", path, namespace),
+			)))
 		case "create":
 			if path == "" {
 				return nil, fmt.Errorf("path is required for create action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you create a variable at path %s. Please provide the key-value pairs to store.", path)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **create_variable**: path %q, namespace %q, key/value from user; respect CAS / lock_operation if they mention concurrency.", path, namespace),
+			)))
 		case "delete":
 			if path == "" {
 				return nil, fmt.Errorf("path is required for delete action")
 			}
-			messages = append(messages, mcp.NewPromptMessage(
-				"assistant",
-				mcp.NewTextContent(fmt.Sprintf("I'll help you delete the variable at path %s.", path)),
-			))
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(
+				fmt.Sprintf("Use **delete_variable** for path %q, namespace %q; include CAS index if user provides optimistic locking.", path, namespace),
+			)))
 		default:
 			return nil, fmt.Errorf("invalid action: %s", action)
 		}
 
-		return mcp.NewGetPromptResult(
-			"Nomad Variable Management",
-			messages,
-		), nil
+		return mcp.NewGetPromptResult("Nomad Variable Management", messages), nil
 	})
+}
 
-	// ACL management prompt
+func registerACLPrompts(s *server.MCPServer) {
 	s.AddPrompt(mcp.NewPrompt("acl_management",
-		mcp.WithPromptDescription("Assist with Nomad ACL management tasks"),
+		mcp.WithPromptDescription("ACL tokens, policies, roles: map to list_acl_tokens, get_acl_token, create_acl_token, bootstrap_acl_token, *_policy*, *_role* tools"),
 		mcp.WithArgument("resource",
-			mcp.ArgumentDescription("The ACL resource type (token, policy, role)"),
+			mcp.ArgumentDescription("token | policy | role"),
 			mcp.RequiredArgument(),
 		),
 		mcp.WithArgument("action",
-			mcp.ArgumentDescription("The action to perform (list, get, create, delete)"),
+			mcp.ArgumentDescription("list | get | create | delete"),
 			mcp.RequiredArgument(),
 		),
 	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		resource := request.Params.Arguments["resource"]
 		action := request.Params.Arguments["action"]
 
+		sys := "You are a Nomad ACL assistant. Treat tokens and policies as sensitive: never echo SecretID broadly; remind users about least privilege. " +
+			"Initial cluster ACL setup uses **bootstrap_acl_token** only when the user explicitly intends to bootstrap. " + guideJSONTools
 		var messages []mcp.PromptMessage
-		messages = append(messages, mcp.NewPromptMessage(
-			"system",
-			mcp.NewTextContent("You are a Nomad ACL management assistant. Help users manage their Nomad ACL resources effectively."),
-		))
+		messages = append(messages, mcp.NewPromptMessage("system", mcp.NewTextContent(sys)))
 
 		switch resource {
 		case "token":
+			var extra string
 			switch action {
 			case "list":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you list all ACL tokens."),
-				))
+				extra = "Use **list_acl_tokens**. Summarize AccessorID, Name, Global; do not dump secret material."
 			case "get":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you get details for a specific ACL token. Please provide the accessor ID."),
-				))
+				extra = "Use **get_acl_token** with accessor_id. Describe linked policies/roles; avoid unnecessary SecretID exposure."
 			case "create":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you create a new ACL token. Please provide the name, type (client/management), and optional policies."),
-				))
+				extra = "Use **create_acl_token** with fields the user confirms (type, policies, roles). Explain client vs management token impact."
 			case "delete":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you delete an ACL token. Please provide the accessor ID."),
-				))
+				extra = "Use **delete_acl_token** only after the user confirms the accessor_id to revoke."
 			default:
 				return nil, fmt.Errorf("invalid action for token: %s", action)
 			}
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(extra)))
+
 		case "policy":
+			var extra string
 			switch action {
 			case "list":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you list all ACL policies."),
-				))
+				extra = "Use **list_acl_policies**."
 			case "get":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you get details for a specific ACL policy. Please provide the policy name."),
-				))
+				extra = "Use **get_acl_policy** with the policy name."
 			case "create":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you create a new ACL policy. Please provide the name, description, and HCL rules."),
-				))
+				extra = "Use **create_acl_policy** with name and rules body in the shape the tool expects."
 			case "delete":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you delete an ACL policy. Please provide the policy name."),
-				))
+				extra = "Use **delete_acl_policy** with policy name."
 			default:
 				return nil, fmt.Errorf("invalid action for policy: %s", action)
 			}
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(extra)))
+
 		case "role":
+			var extra string
 			switch action {
 			case "list":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you list all ACL roles."),
-				))
+				extra = "Use **list_acl_roles**."
 			case "get":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you get details for a specific ACL role. Please provide the role ID."),
-				))
+				extra = "Use **get_acl_role** with role ID."
 			case "create":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you create a new ACL role. Please provide the name, description, and associated policies."),
-				))
+				extra = "Use **create_acl_role**; gather policies to attach."
 			case "delete":
-				messages = append(messages, mcp.NewPromptMessage(
-					"assistant",
-					mcp.NewTextContent("I'll help you delete an ACL role. Please provide the role ID."),
-				))
+				extra = "Use **delete_acl_role** after confirmation."
 			default:
 				return nil, fmt.Errorf("invalid action for role: %s", action)
 			}
+			messages = append(messages, mcp.NewPromptMessage("assistant", mcp.NewTextContent(extra)))
+
 		default:
 			return nil, fmt.Errorf("invalid resource type: %s", resource)
 		}
 
-		return mcp.NewGetPromptResult(
-			"Nomad ACL Management",
-			messages,
-		), nil
+		return mcp.NewGetPromptResult("Nomad ACL Management", messages), nil
 	})
 }
