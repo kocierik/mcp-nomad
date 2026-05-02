@@ -26,56 +26,56 @@ var (
 // MockNomadClient implements the tool-facing subsets of NomadClient for testing.
 type MockNomadClient struct {
 	// Job methods
-	ListJobsFunc                func(context.Context, string, string) ([]types.JobSummary, error)
-	GetJobFunc                  func(context.Context, string, string) (types.Job, error)
-	RunJobFunc                  func(context.Context, string, bool) (map[string]interface{}, error)
-	StopJobFunc                 func(context.Context, string, string, bool) (map[string]interface{}, error)
-	ScaleTaskGroupFunc          func(context.Context, string, string, int, string) error
-	ListJobAllocationsFunc      func(context.Context, string, string) ([]types.Allocation, error)
-	ListJobEvaluationsFunc      func(context.Context, string, string) ([]types.Evaluation, error)
-	ListJobDeploymentsFunc      func(context.Context, string, string) ([]types.JobDeployment, error)
-	GetJobSummaryFunc           func(context.Context, string, string) (types.JobSummary, error)
-	ListJobServicesFunc         func(context.Context, string, string) ([]types.Service, error)
-	GetJobVersionsFunc          func(context.Context, string, string) ([]types.Job, error)
-	ListDeploymentsFunc         func(context.Context, string) ([]types.DeploymentSummary, error)
-	GetDeploymentFunc           func(context.Context, string) (types.Deployment, error)
-	ListVolumesFunc             func(context.Context, string, string, string, int, string) ([]types.Volume, error)
-	GetVolumeFunc               func(context.Context, string) (*types.Volume, error)
-	DeleteVolumeFunc            func(context.Context, string) error
-	ListNodesFunc               func(context.Context, string) ([]types.NodeSummary, error)
-	GetNodeFunc                 func(context.Context, string) (types.Node, error)
-	DrainNodeFunc               func(context.Context, string, bool, int64) (string, error)
-	EligibilityNodeFunc         func(context.Context, string, string) (types.NodeSummary, error)
-	ListNamespacesFunc          func(context.Context) ([]types.Namespace, error)
-	CreateNamespaceFunc         func(context.Context, types.Namespace) error
-	DeleteNamespaceFunc         func(context.Context, string) error
-	ListAllocationsFunc         func(context.Context, string, string) ([]types.Allocation, error)
-	GetAllocationFunc           func(context.Context, string) (types.Allocation, error)
-	StopAllocationFunc          func(context.Context, string) error
-	GetAllocationLogsFunc       func(context.Context, string, string, string, bool, int64, int64) (string, error)
-	ListVariablesFunc           func(context.Context, string, string, string, int, string) ([]types.Variable, error)
-	GetVariableFunc             func(context.Context, string, string) (types.Variable, error)
-	CreateVariableFunc          func(context.Context, types.Variable, string, int, string) error
-	DeleteVariableFunc          func(context.Context, string, string, int) error
-	ListACLTokensFunc           func(context.Context) ([]types.ACLToken, error)
-	GetACLTokenFunc             func(context.Context, string) (types.ACLToken, error)
-	CreateACLTokenFunc          func(context.Context, types.ACLToken) (types.ACLToken, error)
-	DeleteACLTokenFunc          func(context.Context, string) error
-	ListACLPoliciesFunc         func(context.Context) ([]types.ACLPolicy, error)
-	GetACLPolicyFunc            func(context.Context, string) (types.ACLPolicy, error)
-	CreateACLPolicyFunc         func(context.Context, types.ACLPolicy) error
-	DeleteACLPolicyFunc         func(context.Context, string) error
-	ListACLRolesFunc            func(context.Context) ([]types.ACLRole, error)
-	GetACLRoleFunc              func(context.Context, string) (types.ACLRole, error)
-	CreateACLRoleFunc           func(context.Context, types.ACLRole) (types.ACLRole, error)
-	DeleteACLRoleFunc           func(context.Context, string) error
-	BootstrapACLTokenFunc       func(context.Context) (types.ACLToken, error)
-	ListSentinelPoliciesFunc    func(context.Context) ([]types.SentinelPolicy, error)
-	GetSentinelPolicyFunc       func(context.Context, string) (types.SentinelPolicy, error)
-	CreateSentinelPolicyFunc    func(context.Context, types.SentinelPolicy) error
-	DeleteSentinelPolicyFunc    func(context.Context, string) error
-	ListClusterPeersFunc func(context.Context) ([]byte, error)
-	MakeRequestFunc      func(context.Context, string, string, map[string]string, interface{}) ([]byte, error)
+	ListJobsFunc             func(context.Context, string, string) ([]types.JobSummary, error)
+	GetJobFunc               func(context.Context, string, string) (types.Job, error)
+	RunJobFunc               func(context.Context, string, bool) (map[string]interface{}, error)
+	StopJobFunc              func(context.Context, string, string, bool) (map[string]interface{}, error)
+	ScaleTaskGroupFunc       func(context.Context, string, string, int, string) error
+	ListJobAllocationsFunc   func(context.Context, string, string) ([]types.Allocation, error)
+	ListJobEvaluationsFunc   func(context.Context, string, string) ([]types.Evaluation, error)
+	ListJobDeploymentsFunc   func(context.Context, string, string) ([]types.JobDeployment, error)
+	GetJobSummaryFunc        func(context.Context, string, string) (types.JobSummary, error)
+	ListJobServicesFunc      func(context.Context, string, string) ([]types.Service, error)
+	GetJobVersionsFunc       func(context.Context, string, string) ([]types.Job, error)
+	ListDeploymentsFunc      func(context.Context, string) ([]types.DeploymentSummary, error)
+	GetDeploymentFunc        func(context.Context, string) (types.Deployment, error)
+	ListVolumesFunc          func(context.Context, string, string, string, int, string) ([]types.Volume, error)
+	GetVolumeFunc            func(context.Context, string) (*types.Volume, error)
+	DeleteVolumeFunc         func(context.Context, string) error
+	ListNodesFunc            func(context.Context, string) ([]types.NodeSummary, error)
+	GetNodeFunc              func(context.Context, string) (types.Node, error)
+	DrainNodeFunc            func(context.Context, string, bool, int64) (string, error)
+	EligibilityNodeFunc      func(context.Context, string, string) (types.NodeSummary, error)
+	ListNamespacesFunc       func(context.Context) ([]types.Namespace, error)
+	CreateNamespaceFunc      func(context.Context, types.Namespace) error
+	DeleteNamespaceFunc      func(context.Context, string) error
+	ListAllocationsFunc      func(context.Context, string, string) ([]types.Allocation, error)
+	GetAllocationFunc        func(context.Context, string) (types.Allocation, error)
+	StopAllocationFunc       func(context.Context, string) error
+	GetAllocationLogsFunc    func(context.Context, string, string, string, bool, int64, int64) (string, error)
+	ListVariablesFunc        func(context.Context, string, string, string, int, string) ([]types.Variable, error)
+	GetVariableFunc          func(context.Context, string, string) (types.Variable, error)
+	CreateVariableFunc       func(context.Context, types.Variable, string, int, string) error
+	DeleteVariableFunc       func(context.Context, string, string, int) error
+	ListACLTokensFunc        func(context.Context) ([]types.ACLToken, error)
+	GetACLTokenFunc          func(context.Context, string) (types.ACLToken, error)
+	CreateACLTokenFunc       func(context.Context, types.ACLToken) (types.ACLToken, error)
+	DeleteACLTokenFunc       func(context.Context, string) error
+	ListACLPoliciesFunc      func(context.Context) ([]types.ACLPolicy, error)
+	GetACLPolicyFunc         func(context.Context, string) (types.ACLPolicy, error)
+	CreateACLPolicyFunc      func(context.Context, types.ACLPolicy) error
+	DeleteACLPolicyFunc      func(context.Context, string) error
+	ListACLRolesFunc         func(context.Context) ([]types.ACLRole, error)
+	GetACLRoleFunc           func(context.Context, string) (types.ACLRole, error)
+	CreateACLRoleFunc        func(context.Context, types.ACLRole) (types.ACLRole, error)
+	DeleteACLRoleFunc        func(context.Context, string) error
+	BootstrapACLTokenFunc    func(context.Context) (types.ACLToken, error)
+	ListSentinelPoliciesFunc func(context.Context) ([]types.SentinelPolicy, error)
+	GetSentinelPolicyFunc    func(context.Context, string) (types.SentinelPolicy, error)
+	CreateSentinelPolicyFunc func(context.Context, types.SentinelPolicy) error
+	DeleteSentinelPolicyFunc func(context.Context, string) error
+	ListClusterPeersFunc     func(context.Context) ([]byte, error)
+	MakeRequestFunc          func(context.Context, string, string, map[string]string, interface{}) ([]byte, error)
 
 	token string // SetToken persists here for assertions in tests
 }
@@ -439,4 +439,4 @@ func (m *MockNomadClient) GetToken() string {
 }
 
 func (m *MockNomadClient) SetDefaultTailLines(lines int) error { return nil }
-func (m *MockNomadClient) GetDefaultTailLines() int             { return 100 }
+func (m *MockNomadClient) GetDefaultTailLines() int            { return 100 }

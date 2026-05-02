@@ -10,7 +10,6 @@ func CanonicalAuthorizationBearer(authorizationHeader string) string {
 		return ""
 	}
 	// Common form: Bearer <token>
-	const prefixRunes = len("Bearer") // ASCII
 	firstSpace := strings.IndexByte(s, ' ')
 	if firstSpace <= 0 {
 		return s

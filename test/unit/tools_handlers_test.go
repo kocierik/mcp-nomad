@@ -89,9 +89,9 @@ func TestScaleJobHandler_usesEffectiveToolNamespace(t *testing.T) {
 
 	h := tools.ScaleJobHandler(mock, testLogger())
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]interface{}{
-		"job_id":  "job1",
-		"group":   "web",
-		"count":   float64(2),
+		"job_id":    "job1",
+		"group":     "web",
+		"count":     float64(2),
 		"namespace": nil,
 	}}}
 
