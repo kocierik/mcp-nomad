@@ -4,6 +4,15 @@ set -e
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO_ROOT"
 
+# CI passes NPM_TOKEN via env but .npmrc with _authToken lives under packages/*/.
+# npm whoami must see a registry token from the repo root, so write a disposable userconfig.
+NPM_CI_AUTH_RC=""
+EXIT_cleanup() {
+  restore_npmrc
+  [ -n "$NPM_CI_AUTH_RC" ] && rm -f "$NPM_CI_AUTH_RC"
+}
+trap EXIT_cleanup EXIT
+
 NPM_PACKAGES=(
   npm-mcp-nomad-darwin-x64
   npm-mcp-nomad-darwin-arm64
@@ -23,11 +32,16 @@ restore_npmrc() {
     rmdir "$NPMRC_BACKUP_DIR" 2>/dev/null || true
   fi
 }
-trap restore_npmrc EXIT
+if [ -n "${NPM_TOKEN:-}" ]; then
+  NPM_CI_AUTH_RC=$(mktemp)
+  chmod 600 "$NPM_CI_AUTH_RC"
+  printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" >"$NPM_CI_AUTH_RC"
+  export NPM_CONFIG_USERCONFIG="$NPM_CI_AUTH_RC"
+fi
 
 # Fail early if not logged in to npm (avoids confusing 404 after build)
-if ! npm whoami &>/dev/null; then
-  echo "Error: Not logged in to npm. Run 'npm login' or set a valid NPM token."
+if ! npm whoami --registry=https://registry.npmjs.org &>/dev/null; then
+  echo "Error: Not logged in to npm. Run 'npm login' or set a valid NPM_TOKEN secret (valid publish token)."
   exit 1
 fi
 
