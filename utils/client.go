@@ -9,8 +9,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -93,7 +96,7 @@ func buildTLSConfig() *tls.Config {
 	}
 
 	if caFile := os.Getenv("NOMAD_CACERT"); caFile != "" {
-		if caPEM, err := os.ReadFile(caFile); err == nil {
+		if caPEM, ok := readCACertPEM(caFile); ok {
 			pool := x509.NewCertPool()
 			if pool.AppendCertsFromPEM(caPEM) {
 				cfg.RootCAs = pool
@@ -110,4 +113,40 @@ func buildTLSConfig() *tls.Config {
 	}
 
 	return cfg
+}
+
+// readCACertPEM reads the PEM at path from NOMAD_CACERT using os.Root so the open is
+// confined to the parent directory (same file as Nomad CLI, without path components in "file name").
+func readCACertPEM(caPath string) ([]byte, bool) {
+	p := filepath.Clean(strings.TrimSpace(caPath))
+	if p == "" || p == "." {
+		return nil, false
+	}
+	var err error
+	if !filepath.IsAbs(p) {
+		p, err = filepath.Abs(p)
+		if err != nil {
+			return nil, false
+		}
+	}
+	dir := filepath.Dir(p)
+	base := filepath.Base(p)
+	if base == "" || base == "." || base == ".." {
+		return nil, false
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, false
+	}
+	defer root.Close()
+	f, err := root.Open(base)
+	if err != nil {
+		return nil, false
+	}
+	defer func() { _ = f.Close() }()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, false
+	}
+	return b, true
 }
