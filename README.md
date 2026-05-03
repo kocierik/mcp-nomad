@@ -27,10 +27,10 @@ https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
 
 ### Installation Options
 
-|              | <a href="#prebuilt-from-npm">Pre-built NPM</a> | <a href="#from-github-releases">Pre-built in Github</a> | <a href="#building-from-source">From sources</a> | <a href="#using-docker">Using Docker</a> |
-| ------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
-| Claude Setup | Manual                                         | Manual                                                  | Manual                                           | Manual                                   |
-| Prerequisite | Node.js                                        | None                                                    | Golang                                           | Docker                                   |
+|              | <a href="#prebuilt-from-npm">Pre-built NPM</a> | <a href="#from-github-releases">Pre-built in Github</a> | <a href="#building-from-source">From sources</a> |
+| ------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ |
+| Claude Setup | Manual                                         | Manual                                                  | Manual                                           |
+| Prerequisite | Node.js                                        | None                                                    | Golang                                           |
 
 ### Prebuilt from npm
 
@@ -104,61 +104,6 @@ Download the binary and configure Claude Desktop like so:
 ```bash
 go get github.com/kocierik/mcp-nomad
 go install github.com/kocierik/mcp-nomad
-```
-
-### Using Docker linux
-
-```bash
-docker run -i --rm --network=host kocierik/mcpnomad-server:latest
-```
-
-### Using Docker macos/windows
-
-```bash
-docker run -i --rm \
-  -e NOMAD_ADDR=http://host.docker.internal:4646 \
-  kocierik/mcpnomad-server:latest
-```
-
-### For Claude macos/windows:
-
-```json
-{
-  "mcpServers": {
-    "mcp_nomad": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e", "NOMAD_TOKEN=secret-token-acl-optional", 
-        "-e", "NOMAD_ADDR=http://host.docker.internal:4646",
-        "mcpnomad/server:latest"
-      ]
-    }
-  }
-}
-```
-
-### For Claude linux:
-
-```json
-{
-  "mcpServers": {
-    "mcp_nomad": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "NOMAD_ADDR=http://172.17.0.1:4646",
-        "-e", "NOMAD_TOKEN=secret-token-acl-optional", 
-        "kocierik/mcpnomad-server:latest"
-      ]
-    }
-  }
-}
 ```
 
 ## Server options
