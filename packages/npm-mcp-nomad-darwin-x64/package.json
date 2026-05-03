@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad-darwin-x64",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "os": [
     "darwin"
   ],

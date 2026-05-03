@@ -4,6 +4,18 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-03
+
+### Security
+
+- Resolved Dependabot / `pnpm audit` findings for the local **MCP Inspector** stack under `scripts/inspector`: upgraded `@modelcontextprotocol/inspector` to **0.21.x** and applied **`pnpm.overrides`** so transitive dependencies (for example `minimatch`, `path-to-regexp`, `qs`, `body-parser`, `ajv`, `brace-expansion`, `diff`) resolve to patched versions.
+- Go module graph checked with **govulncheck** (no vulnerabilities reported for this release at scan time).
+
+### Changed
+
+- **Dependabot** now also tracks the **npm** manifest in `scripts/inspector` (weekly), alongside `gomod` at the repository root.
+- **`scripts/inspector/run.sh`**: install with **pnpm** (aligned with `pnpm-lock.yaml`), resolve the inspector directory via the script path, and invoke **`mcp-inspector`** via `pnpm exec`.
+
 ## [0.2.9] — 2026-05-02
 
 ### Added
@@ -70,7 +82,8 @@ Dependabot merges in this timeframe include [#12](https://github.com/kocierik/mc
 
 ---
 
-[Unreleased]: https://github.com/kocierik/mcp-nomad/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/kocierik/mcp-nomad/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kocierik/mcp-nomad/compare/v0.2.9...v0.3.0
 [0.2.9]: https://github.com/kocierik/mcp-nomad/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/kocierik/mcp-nomad/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/kocierik/mcp-nomad/compare/v0.2.6...v0.2.7
