@@ -36,4 +36,5 @@ packages/.npmrc-backups
 update.sh
 tag.sh
 
-.cursor
+# Cursor IDE / agent rules (keep local-only; never publish to GitHub)
+.cursor/

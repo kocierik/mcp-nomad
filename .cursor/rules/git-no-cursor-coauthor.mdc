@@ -1,6 +1,0 @@
----
-description: Do not attribute git commits or PR messages to Cursor
-alwaysApply: true
----
-
-When creating or amending commits, merge commits, suggested PR descriptions, or any git trailer lines: **do not** add `Co-authored-by: Cursor`, `Made with Cursor`, or similar attribution. Use only the user's identity and wording they approve.
