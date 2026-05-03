@@ -7,9 +7,9 @@
 </h1>
 
 <p align="center">
-  <a href="#features">Features</a> ⚙
-  <a href="#browse-with-inspector">Browse With Inspector</a> ⚙
-  <a href="#use-with-claude">Use With Claude</a> ⚙
+  <a href="#use-with-claude">Use with Claude</a> ⚙
+  <a href="#server-options">Server options</a> ⚙
+  <a href="#browse-with-mcp-inspector">MCP Inspector (testing)</a> ⚙
   <a href="https://github.com/kocierik/mcp-nomad/blob/main/CONTRIBUTING.md">Contributing ↗</a> ⚙
   <a href="https://modelcontextprotocol.io">About MCP ↗</a>
 </p>
@@ -20,46 +20,6 @@
   <a href="https://github.com/kocierik/mcp-nomad/blob/main/LICENSE"><img src="https://img.shields.io/github/license/kocierik/mcp-nomad" alt="license badge"></a>
 </p>
 
-## Browse With Inspector
-
-To use the latest published version with Inspector:
-
-```bash
-npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
-```
-
-### Inspector with a local HTTP server (optional)
-
-Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, start the binary in another terminal first:
-
-```bash
-go run . -transport=streamable-http -port=8080
-```
-
-Then use **`http://localhost:8080/mcp`** in the Inspector. For `-transport=sse`, use **`http://localhost:8080/sse`**.
-
-### Options Available
-```
-  -nomad-addr string
-    	Nomad server address (default "http://localhost:4646")
-  -port string
-    	Port for HTTP server (default "8080")
-  -transport string
-    	Transport type (stdio, sse, or streamable-http) (default "stdio")
-```
-
-### Environment Variables
-
-- `NOMAD_ADDR`: Nomad HTTP API address (default: http://localhost:4646)
-- `NOMAD_TOKEN`: Nomad ACL token (optional)
-- `NOMAD_REGION`: forwarded as the REST `region` query parameter when callers do not override it (multi-region clusters)
-- `NOMAD_NAMESPACE`: default namespace for tools that accept an optional namespace when the tool omits it
-- TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME` (see `utils/client.go` / `buildTLSConfig`)
-
-The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
-
-`NomadClient.MakeRequest` (used only for a few cluster/legacy call sites) rejects paths outside an internal allow-list — prefer typed helpers such as `StopAllocation`.
-
 ## Use With Claude
 
 https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
@@ -67,30 +27,43 @@ https://github.com/user-attachments/assets/731621d7-0acf-4045-bacc-7b34a7d83648
 
 ### Installation Options
 
-|              | <a href="#using-smithery">Smithery</a> | <a href="#using-mcp-get">mcp-get</a> | <a href="#prebuilt-from-npm">Pre-built NPM</a> | <a href="#from-github-releases">Pre-built in Github</a> | <a href="#building-from-source">From sources</a> | <a href="#using-docker">Using Docker</a> |
-| ------------ | -------------------------------------- | ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
-| Claude Setup | Auto                                   | Auto                                 | Manual                                         | Manual                                                  | Manual                                           | Manual                                   |
-| Prerequisite | Node.js                                | Node.js                              | Node.js                                        | None                                                    | Golang                                           | Docker                                   |
-
-### Using Smithery
-
-```bash
-npx -y @smithery/cli install @kocierik/mcp-nomad --client claude
-```
-
-### Using mcp-get
-
-```bash
-npx @michaellatman/mcp-get@latest install @kocierik/mcp-nomad
-```
+|              | <a href="#prebuilt-from-npm">Pre-built NPM</a> | <a href="#from-github-releases">Pre-built in Github</a> | <a href="#building-from-source">From sources</a> | <a href="#using-docker">Using Docker</a> |
+| ------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| Claude Setup | Manual                                         | Manual                                                  | Manual                                           | Manual                                   |
+| Prerequisite | Node.js                                        | None                                                    | Golang                                           | Docker                                   |
 
 ### Prebuilt from npm
+
+The package publishes a **`mcp-nomad`** CLI. Easiest zero-install option (downloads to npm’s cache; needs Node/npm):
+
+```bash
+npx -y @kocierik/mcp-nomad
+```
+
+Or install globally so `mcp-nomad` is on your `PATH`:
 
 ```bash
 npm install -g @kocierik/mcp-nomad
 ```
 
-Update your `claude_desktop_config.json`:
+`claude_desktop_config.json` with **`npx`** (recommended):
+
+```json
+{
+  "mcpServers": {
+    "mcp_nomad": {
+      "command": "npx",
+      "args": ["-y", "@kocierik/mcp-nomad"],
+      "env": {
+        "NOMAD_TOKEN": "${NOMAD_TOKEN}",
+        "NOMAD_ADDR": "${NOMAD_ADDR}"
+      }
+    }
+  }
+}
+```
+
+If you used **`npm install -g`**, keep `command` / `args` as the binary directly:
 
 ```json
 {
@@ -187,6 +160,51 @@ docker run -i --rm \
   }
 }
 ```
+
+## Server options
+
+Command-line flags (also relevant when pairing with MCP Inspector against a manually started binary):
+
+```
+  -nomad-addr string
+    	Nomad server address (default "http://localhost:4646")
+  -port string
+    	Port for HTTP server (default "8080")
+  -transport string
+    	Transport type (stdio, sse, or streamable-http) (default "stdio")
+```
+
+### Environment variables
+
+- `NOMAD_ADDR`: Nomad HTTP API address (default: http://localhost:4646)
+- `NOMAD_TOKEN`: Nomad ACL token (optional)
+- `NOMAD_REGION`: forwarded as the REST `region` query parameter when callers do not override it (multi-region clusters)
+- `NOMAD_NAMESPACE`: default namespace for tools that accept an optional namespace when the tool omits it
+- TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME` (see `utils/client.go` / `buildTLSConfig`)
+
+The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
+
+`NomadClient.MakeRequest` (used only for a few cluster/legacy call sites) rejects paths outside an internal allow-list — prefer typed helpers such as `StopAllocation`.
+
+## Browse with MCP Inspector
+
+Use this for **local testing and debugging** — not required for Claude Desktop daily use.
+
+To run the latest published npm build under the MCP Inspector:
+
+```bash
+npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
+```
+
+### Inspector with a local HTTP server (optional)
+
+Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, start the binary in another terminal first:
+
+```bash
+go run . -transport=streamable-http -port=8080
+```
+
+Then open **`http://localhost:8080/mcp`** in the Inspector. For `-transport=sse`, use **`http://localhost:8080/sse`**.
 
 ## License
 
