@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-cd scripts/inspector
-npm install
+INSPECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$INSPECTOR_DIR"
 
-npx @modelcontextprotocol/inspector go run  ../../main.go "$@"
+pnpm install
+
+pnpm exec mcp-inspector go run ../../main.go "$@"
