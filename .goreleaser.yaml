@@ -63,22 +63,12 @@ archives:
       - goos: windows
         format: zip
 
+# Matches Conventional Commits with optional scope, e.g. feat:, feat(api):, chore(scope)!:
 changelog:
   sort: asc
   filters:
     include:
-      - "^feat:"
-      - "^fix:"
-      - "^chore:"
-      - "^refactor:"
-      - "^update:"
-      - "^perf:"
-      - "^docs:"
-      - "^style:"
-      - "^test:"
-      - "^ci:"
-      - "^build:"
-      - "^release:"
+      - '^(feat|fix|chore|refactor|update|perf|docs|style|test|ci|build|release)(\([^)]*\))?\s*!?\s*:'
 
 release:
   prerelease: auto
