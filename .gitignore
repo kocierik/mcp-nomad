@@ -35,3 +35,5 @@ dist
 packages/.npmrc-backups
 update.sh
 tag.sh
+
+.cursor
