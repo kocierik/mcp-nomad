@@ -43,7 +43,7 @@ type RescheduleTracker struct {
 
 // RescheduleEvent represents a reschedule event
 type RescheduleEvent struct {
-	RescheduleTime *time.Time `json:"RescheduleTime"`
-	PrevAllocID    string     `json:"PrevAllocID"`
-	PrevNodeID     string     `json:"PrevNodeID"`
+	RescheduleTime int64  `json:"RescheduleTime"`
+	PrevAllocID    string `json:"PrevAllocID"`
+	PrevNodeID     string `json:"PrevNodeID"`
 }
