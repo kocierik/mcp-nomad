@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/kocierik/mcp-nomad/types"
 	"github.com/kocierik/mcp-nomad/utils"
@@ -23,6 +24,9 @@ func RegisterJobTools(s *server.MCPServer, nomadClient utils.JobAPI, logger *log
 		mcp.WithString("status",
 			mcp.Description("Filter jobs by status (pending, running, dead)"),
 			mcp.Enum("pending", "running", "dead", ""),
+		),
+		mcp.WithString("prefix",
+			mcp.Description("Only jobs whose ID starts with this prefix (case-sensitive)"),
 		),
 	)
 	s.AddTool(listJobsTool, ListJobsHandler(nomadClient, logger))
@@ -191,46 +195,34 @@ func ListJobsHandler(client utils.JobAPI, logger *log.Logger) func(context.Conte
 			JobModifyIndex    int                      `json:"JobModifyIndex"`
 		}
 
-		var detailedJobs []EnhancedJobDetail
+		// The /v1/jobs list endpoint already returns Name/Type/Status plus a nested
+		// JobSummary per stub, so build the listing from that single call. Fetching
+		// the full job + summary per job (the previous behaviour) was an N+1 that
+		// timed out on large namespaces (prod has ~200 jobs = ~400 serial requests).
+		detailedJobs := make([]EnhancedJobDetail, 0, len(initialJobStubs))
 
+		prefix, _ := arguments["prefix"].(string)
 		for _, stub := range initialJobStubs {
-			jobID := stub.ID
-
-			fullJob, errJob := client.GetJob(ctx, jobID, namespace)
-			if errJob != nil {
-				logger.Printf("Error getting full details for job %s in namespace %s: %v. Skipping this job.", jobID, namespace, errJob)
+			// Nomad's /v1/jobs ignores ?status=, so filter here.
+			if statusFilter != "" && stub.Status != statusFilter {
 				continue
 			}
-
+			if prefix != "" && !strings.HasPrefix(stub.ID, prefix) {
+				continue
+			}
 			item := EnhancedJobDetail{
-				ID:                fullJob.ID,
-				ParentID:          fullJob.ParentID,
-				Name:              fullJob.Name,
-				Type:              fullJob.Type,
-				Priority:          fullJob.Priority,
-				Status:            fullJob.Status,
-				StatusDescription: "",
-				CreateIndex:       fullJob.CreateIndex,
-				ModifyIndex:       fullJob.ModifyIndex,
-				JobModifyIndex:    fullJob.JobModifyIndex,
-				JobSummary:        nil,
+				ID:                stub.ID,
+				ParentID:          stub.ParentID,
+				Name:              stub.Name,
+				Type:              stub.Type,
+				Priority:          stub.Priority,
+				Status:            stub.Status,
+				StatusDescription: stub.StatusDescription,
+				CreateIndex:       stub.CreateIndex,
+				ModifyIndex:       stub.ModifyIndex,
+				JobModifyIndex:    stub.ModifyIndex,
+				JobSummary:        stub.Nested,
 			}
-
-			basicSummaryValue, errSummary := client.GetJobSummary(ctx, jobID, namespace)
-			if errSummary == nil {
-				detailedSummaryForOutput := types.JobSummaryDetails{
-					JobID:       fullJob.ID,
-					Namespace:   namespace,
-					Summary:     basicSummaryValue.Summary,
-					Children:    basicSummaryValue.Children,
-					CreateIndex: basicSummaryValue.CreateIndex,
-					ModifyIndex: basicSummaryValue.ModifyIndex,
-				}
-				item.JobSummary = &detailedSummaryForOutput
-			} else {
-				logger.Printf("Error getting summary for job %s in namespace %s: %v. JobSummary will be null.", jobID, namespace, errSummary)
-			}
-
 			detailedJobs = append(detailedJobs, item)
 		}
 
