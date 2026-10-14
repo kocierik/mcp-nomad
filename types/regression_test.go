@@ -15,6 +15,7 @@ func TestNodeDecodesRealAPIShape(t *testing.T) {
 		"NodeClass": "batch",
 		"NodePool": "default",
 		"Resources": {"CPU": 4000, "MemoryMB": 8192, "DiskMB": 51200},
+		"NodeResources": {"Cpu": {"CpuShares": 20000, "TotalCpuCores": 10}, "Memory": {"MemoryMB": 19994}, "Disk": {"DiskMB": 21488}},
 		"Drivers": {
 			"docker": {"Detected": true, "Healthy": true, "HealthDescription": "Healthy"},
 			"exec":   {"Detected": false, "Healthy": false, "HealthDescription": "Driver not detected"}
@@ -32,6 +33,9 @@ func TestNodeDecodesRealAPIShape(t *testing.T) {
 	}
 	if n.Resources.CPU != 4000 || n.Resources.MemoryMB != 8192 || n.Resources.DiskMB != 51200 {
 		t.Fatalf("resources not decoded: %+v", n.Resources)
+	}
+	if nr := n.NodeResources; nr.Cpu.CpuShares != 20000 || nr.Cpu.TotalCpuCores != 10 || nr.Memory.MemoryMB != 19994 || nr.Disk.DiskMB != 21488 {
+		t.Fatalf("node resources not decoded: %+v", nr)
 	}
 }
 
