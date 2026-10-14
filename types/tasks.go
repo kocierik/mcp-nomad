@@ -24,6 +24,7 @@ type TaskEvent struct {
 	ExitCode         int    `json:"ExitCode"`
 	Signal           int    `json:"Signal"`
 	Message          string `json:"Message"`
+	DisplayMessage   string `json:"DisplayMessage"`
 	KillReason       string `json:"KillReason"`
 	KillTimeout      int64  `json:"KillTimeout"`
 	KillError        string `json:"KillError"`
