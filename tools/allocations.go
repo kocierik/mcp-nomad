@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/kocierik/mcp-nomad/types"
 	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -22,6 +24,16 @@ func RegisterAllocationTools(s *server.MCPServer, nomadClient utils.AllocationAP
 		),
 		mcp.WithString("job_id",
 			mcp.Description("If set, list allocations via GET /v1/job/:job_id/allocations (namespace respected); otherwise GET /v1/allocations"),
+		),
+		mcp.WithString("node_id",
+			mcp.Description("Only allocations placed on this node (full ID or unique prefix). Filtering is done client-side"),
+		),
+		mcp.WithString("client_status",
+			mcp.Description("Only allocations with this ClientStatus"),
+			mcp.Enum("pending", "running", "complete", "failed", "lost", "unknown", ""),
+		),
+		mcp.WithBoolean("compact",
+			mcp.Description("Return a slim projection (ID, job, group, node, statuses, times, per-task state + last event message) instead of full allocation objects. Strongly recommended with namespace=\"*\""),
 		),
 	)
 	s.AddTool(listAllocationsTool, ListAllocationsHandler(nomadClient, logger))
@@ -67,7 +79,34 @@ func ListAllocationsHandler(client utils.AllocationAPI, logger *log.Logger) func
 			return mcp.NewToolResultErrorFromErr("Failed to list allocations", err), nil
 		}
 
-		allocationsJSON, err := json.MarshalIndent(allocations, "", "  ")
+		nodeID, _ := arguments["node_id"].(string)
+		nodeID = strings.TrimSpace(nodeID)
+		clientStatus, _ := arguments["client_status"].(string)
+		// Clients with a stale cached schema send booleans as strings ("true").
+		compact := false
+		switch v := arguments["compact"].(type) {
+		case bool:
+			compact = v
+		case string:
+			compact = strings.EqualFold(strings.TrimSpace(v), "true")
+		}
+
+		filtered := allocations[:0:0]
+		for _, a := range allocations {
+			if nodeID != "" && !strings.HasPrefix(a.NodeID, nodeID) {
+				continue
+			}
+			if clientStatus != "" && a.ClientStatus != clientStatus {
+				continue
+			}
+			filtered = append(filtered, a)
+		}
+
+		var payload interface{} = filtered
+		if compact {
+			payload = compactAllocations(filtered)
+		}
+		allocationsJSON, err := json.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("Failed to format allocations", err), nil
 		}
@@ -125,4 +164,58 @@ func StopAllocationHandler(client utils.AllocationAPI, logger *log.Logger) func(
 
 		return mcp.NewToolResultText(fmt.Sprintf("Allocation %s stopped successfully", allocationID)), nil
 	}
+}
+
+type compactTask struct {
+	State     string `json:"state"`
+	Failed    bool   `json:"failed"`
+	LastEvent string `json:"last_event,omitempty"`
+}
+
+type compactAlloc struct {
+	ID           string                 `json:"id"`
+	Namespace    string                 `json:"namespace,omitempty"`
+	JobID        string                 `json:"job_id"`
+	TaskGroup    string                 `json:"task_group"`
+	NodeID       string                 `json:"node_id"`
+	NodeName     string                 `json:"node_name,omitempty"`
+	ClientStatus string                 `json:"client_status"`
+	DesiredState string                 `json:"desired_status"`
+	Description  string                 `json:"client_description,omitempty"`
+	EvalID       string                 `json:"eval_id"`
+	Created      string                 `json:"created"`
+	Modified     string                 `json:"modified"`
+	Tasks        map[string]compactTask `json:"tasks,omitempty"`
+}
+
+// compactAllocations projects allocations onto the fields needed to triage them
+// (full objects with event histories are ~7KB each, ~4.5MB for namespace "*").
+func compactAllocations(in []types.Allocation) []compactAlloc {
+	out := make([]compactAlloc, 0, len(in))
+	for _, a := range in {
+		c := compactAlloc{
+			ID: a.ID, Namespace: a.Namespace, JobID: a.JobID, TaskGroup: a.TaskGroup,
+			NodeID: a.NodeID, NodeName: a.NodeName, ClientStatus: a.ClientStatus,
+			DesiredState: a.DesiredStatus, Description: a.ClientDescription, EvalID: a.EvalID,
+			Created:  time.Unix(0, a.CreateTime).UTC().Format(time.RFC3339),
+			Modified: time.Unix(0, a.ModifyTime).UTC().Format(time.RFC3339),
+		}
+		if len(a.TaskStates) > 0 {
+			c.Tasks = make(map[string]compactTask, len(a.TaskStates))
+			for name, ts := range a.TaskStates {
+				ct := compactTask{State: ts.State, Failed: ts.Failed}
+				if n := len(ts.Events); n > 0 {
+					e := ts.Events[n-1]
+					msg := e.DisplayMessage
+					if msg == "" {
+						msg = e.Message
+					}
+					ct.LastEvent = e.Type + ": " + msg
+				}
+				c.Tasks[name] = ct
+			}
+		}
+		out = append(out, c)
+	}
+	return out
 }
