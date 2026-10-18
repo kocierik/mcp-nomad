@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@modelcontextprotocol/inspector": "^2.10.1"
+    "@modelcontextprotocol/inspector": "^2.11.0"
   },
   "pnpm": {
     "overrides": {
