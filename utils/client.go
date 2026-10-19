@@ -112,6 +112,16 @@ func buildTLSConfig() *tls.Config {
 		cfg.ServerName = name
 	}
 
+	// Support client certificates for mutual TLS (matching Nomad CLI behavior)
+	if certFile := os.Getenv("NOMAD_CLIENT_CERT"); certFile != "" {
+		if keyFile := os.Getenv("NOMAD_CLIENT_KEY"); keyFile != "" {
+			cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+			if err == nil {
+				cfg.Certificates = []tls.Certificate{cert}
+			}
+		}
+	}
+
 	return cfg
 }
 
