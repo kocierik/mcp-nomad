@@ -33,6 +33,7 @@ type MockNomadClient struct {
 	ScaleTaskGroupFunc       func(context.Context, string, string, int, string) error
 	ListJobAllocationsFunc   func(context.Context, string, string) ([]types.Allocation, error)
 	ListJobEvaluationsFunc   func(context.Context, string, string) ([]types.Evaluation, error)
+	GetEvaluationFunc        func(context.Context, string, string) (types.Evaluation, error)
 	ListJobDeploymentsFunc   func(context.Context, string, string) ([]types.JobDeployment, error)
 	GetJobSummaryFunc        func(context.Context, string, string) (types.JobSummary, error)
 	ListJobServicesFunc      func(context.Context, string, string) ([]types.Service, error)
@@ -127,6 +128,13 @@ func (m *MockNomadClient) ListJobEvaluations(ctx context.Context, jobID, namespa
 		return m.ListJobEvaluationsFunc(ctx, jobID, namespace)
 	}
 	return nil, nil
+}
+
+func (m *MockNomadClient) GetEvaluation(ctx context.Context, evalID, namespace string) (types.Evaluation, error) {
+	if m.GetEvaluationFunc != nil {
+		return m.GetEvaluationFunc(ctx, evalID, namespace)
+	}
+	return types.Evaluation{}, nil
 }
 
 func (m *MockNomadClient) ListJobDeployments(ctx context.Context, jobID, namespace string) ([]types.JobDeployment, error) {

@@ -9,6 +9,8 @@ type Allocation struct {
 	ID                 string                 `json:"ID"`
 	EvalID             string                 `json:"EvalID"`
 	Name               string                 `json:"Name"`
+	Namespace          string                 `json:"Namespace"`
+	NodeName           string                 `json:"NodeName"`
 	NodeID             string                 `json:"NodeID"`
 	JobID              string                 `json:"JobID"`
 	TaskGroup          string                 `json:"TaskGroup"`

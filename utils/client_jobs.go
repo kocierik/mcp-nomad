@@ -411,3 +411,23 @@ func (c *NomadClient) GetJobSummary(ctx context.Context, jobID, namespace string
 		ModifyIndex: response.ModifyIndex,
 	}, nil
 }
+
+// GetEvaluation returns a single evaluation (GET /v1/evaluation/:id). FailedTGAllocs
+// holds the placement-failure reasons that explain why an allocation stays pending.
+func (c *NomadClient) GetEvaluation(ctx context.Context, evalID, namespace string) (types.Evaluation, error) {
+	path := fmt.Sprintf("evaluation/%s", evalID)
+
+	queryParams := make(map[string]string)
+	AddNomadNamespaceQuery(queryParams, namespace)
+
+	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
+	if err != nil {
+		return types.Evaluation{}, err
+	}
+
+	var eval types.Evaluation
+	if err := json.Unmarshal(respBody, &eval); err != nil {
+		return types.Evaluation{}, fmt.Errorf("error unmarshaling response: %v", err)
+	}
+	return eval, nil
+}

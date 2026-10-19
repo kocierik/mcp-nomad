@@ -31,6 +31,7 @@ type JobAPI interface {
 	ScaleTaskGroup(ctx context.Context, jobID, group string, count int, namespace string) error
 	ListJobAllocations(ctx context.Context, jobID, namespace string) ([]types.Allocation, error)
 	ListJobEvaluations(ctx context.Context, jobID, namespace string) ([]types.Evaluation, error)
+	GetEvaluation(ctx context.Context, evalID, namespace string) (types.Evaluation, error)
 	ListJobDeployments(ctx context.Context, jobID, namespace string) ([]types.JobDeployment, error)
 	GetJobSummary(ctx context.Context, jobID, namespace string) (types.JobSummary, error)
 	ListJobServices(ctx context.Context, jobID, namespace string) ([]types.Service, error)

@@ -120,6 +120,19 @@ func RegisterJobTools(s *server.MCPServer, nomadClient utils.JobAPI, logger *log
 	)
 	s.AddTool(getJobEvaluationsTool, GetJobEvaluationsHandler(nomadClient, logger))
 
+	// Get evaluation tool (read-only): FailedTGAllocs explains pending/unplaced allocations
+	getEvaluationTool := mcp.NewTool("get_evaluation",
+		mcp.WithDescription("Get an evaluation by ID. FailedTGAllocs lists placement-failure reasons (why an allocation is pending/unplaced); also shows Status, TriggeredBy, BlockedEvalID, QueuedAllocations"),
+		mcp.WithString("evaluation_id",
+			mcp.Required(),
+			mcp.Description("The evaluation ID (an allocation's EvalID)"),
+		),
+		mcp.WithString("namespace",
+			mcp.Description("The namespace of the evaluation (default: default)"),
+		),
+	)
+	s.AddTool(getEvaluationTool, GetEvaluationHandler(nomadClient, logger))
+
 	// Get job deployments tool
 	getJobDeploymentsTool := mcp.NewTool("get_job_deployments",
 		mcp.WithDescription("Get deployments for a job"),
@@ -525,5 +538,29 @@ func GetJobServicesHandler(client utils.JobAPI, logger *log.Logger) func(context
 		}
 
 		return mcp.NewToolResultText(string(servicesJSON)), nil
+	}
+}
+
+// GetEvaluationHandler returns a handler for reading a single evaluation (read-only).
+func GetEvaluationHandler(client utils.JobAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		arguments, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments"), nil
+		}
+		evalID, _ := arguments["evaluation_id"].(string)
+		if strings.TrimSpace(evalID) == "" {
+			return mcp.NewToolResultError("evaluation_id is required"), nil
+		}
+		eval, err := client.GetEvaluation(ctx, strings.TrimSpace(evalID), utils.EffectiveToolNamespace(arguments))
+		if err != nil {
+			logger.Printf("Error getting evaluation: %v", err)
+			return mcp.NewToolResultErrorFromErr("Failed to get evaluation", err), nil
+		}
+		out, err := json.MarshalIndent(eval, "", "  ")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to format evaluation", err), nil
+		}
+		return mcp.NewToolResultText(string(out)), nil
 	}
 }
