@@ -1,13 +1,27 @@
 // File: types/jobs.go
 package types
 
-// JobSummary represents a summary of a Nomad job
+// JobSummary represents a job stub as returned by the /v1/jobs list endpoint.
+// Each stub already carries Name/Type/Status plus a nested JobSummary object, so
+// list_jobs can render a full listing from a single call — the previous code
+// re-fetched the full job + summary per job (an N+1 that timed out on large
+// namespaces). Name/Type/Status/Priority/ParentID/StatusDescription and Nested
+// were added for that reason. The top-level Summary/Children fields are kept for
+// backward compatibility but are not populated by the list endpoint (the counts
+// live under Nested.Summary / Nested.Children).
 type JobSummary struct {
-	ID          string                 `json:"ID"`
-	Summary     map[string]TaskSummary `json:"Summary"`
-	Children    *JobChildrenSummary    `json:"Children"`
-	CreateIndex int                    `json:"CreateIndex"`
-	ModifyIndex int                    `json:"ModifyIndex"`
+	ID                string                 `json:"ID"`
+	ParentID          string                 `json:"ParentID"`
+	Name              string                 `json:"Name"`
+	Type              string                 `json:"Type"`
+	Priority          int                    `json:"Priority"`
+	Status            string                 `json:"Status"`
+	StatusDescription string                 `json:"StatusDescription"`
+	Nested            *JobSummaryDetails     `json:"JobSummary"`
+	Summary           map[string]TaskSummary `json:"Summary"`
+	Children          *JobChildrenSummary    `json:"Children"`
+	CreateIndex       int                    `json:"CreateIndex"`
+	ModifyIndex       int                    `json:"ModifyIndex"`
 }
 
 // JobSummaryDetails represents detailed summary information for a job
