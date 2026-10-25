@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@modelcontextprotocol/inspector':
-        specifier: ^2.11.0
-        version: 2.11.0(@types/node@22.14.1)
+        specifier: ^2.12.0
+        version: 2.12.0(@types/node@22.14.1)
 
 packages:
 
@@ -58,8 +58,8 @@ packages:
       '@modelcontextprotocol/client':
         optional: true
 
-  '@modelcontextprotocol/inspector@2.11.0':
-    resolution: {integrity: sha512-gqMw2x0NCotTdjLNv3PSm/IJSeXL7O8u0SpyZXtXGhSukJ2DMoAy8RR7xKngHTCETJcG5gyPdxhOn8zf/ofSRA==}
+  '@modelcontextprotocol/inspector@2.12.0':
+    resolution: {integrity: sha512-ppfN5+HnVWo6dY7jz5RMFUFTfEYPnFUjN3XN2w6PI6nmB/AFFXPGPfLBRvCeSx+qIH6kpi7Nsz5HYRp49loHpA==}
     engines: {node: '>=22.19.0'}
     hasBin: true
 
@@ -441,6 +441,10 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  is-in-ssh@1.0.0:
+    resolution: {integrity: sha512-jYa6Q9rH90kR1vKB6NM7qqd1mge3Fx4Dhw5TVlK1MUBqhEOuCagrEHMevNuCcbECmXZ0ThXkRm+Ymr51HwEPAw==}
+    engines: {node: '>=20'}
+
   is-inside-container@1.0.0:
     resolution: {integrity: sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==}
     engines: {node: '>=14.16'}
@@ -550,9 +554,9 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
-  open@10.2.0:
-    resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
-    engines: {node: '>=18'}
+  open@11.0.4:
+    resolution: {integrity: sha512-++Zlftm0kVLPmzC06t6epuWmcRMDbI4z5P3NNX979WA/k23+NtSOynEGzsVfZwguKw2mi5umVgnBlJQMwRz4Pg==}
+    engines: {node: '>=20'}
 
   patch-console@2.0.0:
     resolution: {integrity: sha512-0YNdUceMdaQwoKce1gatDScmMo5pu/tfABfnzEqeG0gtTmd7mh/WcwgUjtAeOU7N8nFFlbQBnFK2gXW5fGvmMA==}
@@ -586,6 +590,10 @@ packages:
   postcss@8.5.28:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
+
+  powershell-utils@0.2.1:
+    resolution: {integrity: sha512-C+y9x90UElAddDZmV4qOx9W53B61PO7cIqWz2dQsWlwswuq4mr8NEwytdGKboYbQlGZ3awrkTeNvcZiZNHnQ8A==}
+    engines: {node: '>=20'}
 
   process-warning@5.1.0:
     resolution: {integrity: sha512-jQSaVHsPgtyw60e1rQ/A+/ArPEj/S8pS/vFnyGa/gYFXrKk/6RuDkoqVDQ5NI5MmS01698ltlAk0NoDBNLujRw==}
@@ -787,9 +795,9 @@ packages:
       utf-8-validate:
         optional: true
 
-  wsl-utils@0.1.0:
-    resolution: {integrity: sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw==}
-    engines: {node: '>=18'}
+  wsl-utils@1.0.1:
+    resolution: {integrity: sha512-c16PKLIRxBYpR3jSWsdS7SFp0COm5SOQdiFjY818dYFHJbMGuLBszpF07LBWmOS1uzrHa9VGdynsEgoeKy0oOQ==}
+    engines: {node: '>=20'}
 
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
@@ -843,7 +851,7 @@ snapshots:
     optionalDependencies:
       '@modelcontextprotocol/client': 2.3.1
 
-  '@modelcontextprotocol/inspector@2.11.0(@types/node@22.14.1)':
+  '@modelcontextprotocol/inspector@2.12.0(@types/node@22.14.1)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.7)
       '@modelcontextprotocol/client': 2.3.1
@@ -859,7 +867,7 @@ snapshots:
       commander: 15.0.0
       hono: 4.13.7
       ink: 6.8.0(react@19.3.0)
-      open: 10.2.0
+      open: 11.0.4
       pino: 9.14.0
       proper-lockfile: 4.1.2
       react: 19.3.0
@@ -1150,6 +1158,8 @@ snapshots:
 
   is-in-ci@2.0.0: {}
 
+  is-in-ssh@1.0.0: {}
+
   is-inside-container@1.0.0:
     dependencies:
       is-docker: 3.0.0
@@ -1223,12 +1233,14 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
-  open@10.2.0:
+  open@11.0.4:
     dependencies:
       default-browser: 5.5.1
       define-lazy-prop: 3.0.0
+      is-in-ssh: 1.0.0
       is-inside-container: 1.0.0
-      wsl-utils: 0.1.0
+      powershell-utils: 0.2.1
+      wsl-utils: 1.0.1
 
   patch-console@2.0.0: {}
 
@@ -1265,6 +1277,8 @@ snapshots:
       nanoid: 3.3.19
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  powershell-utils@0.2.1: {}
 
   process-warning@5.1.0: {}
 
@@ -1421,9 +1435,10 @@ snapshots:
 
   ws@8.21.3: {}
 
-  wsl-utils@0.1.0:
+  wsl-utils@1.0.1:
     dependencies:
       is-wsl: 3.1.1
+      powershell-utils: 0.2.1
 
   yaml@2.9.1: {}
 
