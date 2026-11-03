@@ -5,4 +5,4 @@ cd "$INSPECTOR_DIR"
 
 pnpm install
 
-pnpm exec mcp-inspector go run ../../main.go "$@"
+pnpm exec mcp-inspector go run ../.. "$@"

@@ -9,6 +9,7 @@ All notable changes to this project are documented here. This project adheres to
 - HTTP transports require a separate `MCP_TOKEN` before connecting to Nomad. Missing or invalid bearer credentials are rejected; the MCP bearer is never forwarded as a Nomad ACL token.
 - HTTP listeners bind to loopback by default. Origin validation uses exact canonical origins, including standard ports and IPv6 loopback, and rejects ambiguous or malformed headers.
 - Variable CAS inputs are validated without lossy numeric coercion. Explicit CAS zero is never silently downgraded to an unconditional operation.
+- Resolved all 15 Dependabot / `pnpm audit` findings in the local MCP Inspector stack (`scripts/inspector`) with same-major overrides for `zod`, `vite`, `source-map-js`, `hono`, `@hono/node-server` and `fast-uri`. The tool is pinned to pnpm 10, because pnpm 11+ no longer reads `package.json` overrides, and `run.sh` now builds the whole `main` package.
 
 ### Fixed
 

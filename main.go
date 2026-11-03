@@ -13,18 +13,16 @@
 //
 // Example usage:
 //
-//	go get github.com/kocierik/mcp-nomad@v0.1.0
-//
-//	import "github.com/kocierik/mcp-nomad"
+//	go install github.com/kocierik/mcp-nomad@latest
 //
 //	// Start the server with stdio transport [default]
-//	go run main.go
+//	go run .
 //
-//	// Legacy SSE transport
-//	go run main.go -transport=sse -port=8080
+//	// Legacy SSE transport (HTTP transports require MCP_TOKEN)
+//	go run . -transport=sse -port=8080
 //
 //	// StreamableHTTP (Inspector / HTTP clients — path /mcp by default)
-//	go run main.go -transport=streamable-http -port=8080
+//	go run . -transport=streamable-http -port=8080
 package main
 
 import (
