@@ -17,9 +17,12 @@ func TestListAllocationsHandler_filtersAndCompact(t *testing.T) {
 	mock := &mocks.MockNomadClient{}
 	mock.ListAllocationsFunc = func(context.Context, string, string) ([]types.Allocation, error) {
 		return []types.Allocation{
-			{ID: "a1", NodeID: "node-aaaa", ClientStatus: "pending", JobID: "j1", CreateTime: 1700000000000000000,
+			{
+				ID: "a1", NodeID: "node-aaaa", ClientStatus: "pending", JobID: "j1", CreateTime: 1700000000000000000,
 				TaskStates: map[string]types.TaskState{"t": {State: "pending", Events: []types.TaskEvent{
-					{Type: "Template", DisplayMessage: "Missing: vault.read(secret/x)"}}}}},
+					{Type: "Template", DisplayMessage: "Missing: vault.read(secret/x)"},
+				}}},
+			},
 			{ID: "a2", NodeID: "node-aaaa", ClientStatus: "running", JobID: "j2"},
 			{ID: "a3", NodeID: "node-bbbb", ClientStatus: "pending", JobID: "j3"},
 		}, nil

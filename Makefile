@@ -22,7 +22,7 @@ NC=\033[0m # No Color
 # Enable color output
 export TERM=xterm-256color
 
-.PHONY: help build run clean test test-unit test-integration test-coverage test-race test-benchmark test-all clean-test test-deps lint format deps install uninstall release docker dev start-nomad stop-nomad status
+.PHONY: help build run clean test test-unit test-integration test-live test-coverage test-race test-benchmark test-all clean-test test-deps lint format deps install uninstall release docker dev start-nomad stop-nomad status
 
 # =============================================================================
 # HELP
@@ -124,11 +124,15 @@ test: test-unit test-integration ## Run all tests
 
 test-unit: ## Run unit tests
 	@echo -e "$(BLUE)Running unit tests...$(NC)"
-	@go test -v ./test/unit/...
+	@go test -v . ./utils/... ./types/... ./tools/... ./prompts/... ./test/unit/...
 
 test-integration: ## Run integration tests
 	@echo -e "$(BLUE)Running integration tests...$(NC)"
 	@go test -v ./test/integration/...
+
+test-live: ## Run end-to-end tests against a disposable Nomad agent (requires NOMAD_INTEGRATION_ADDR)
+	@test -n "$(NOMAD_INTEGRATION_ADDR)" || (echo "NOMAD_INTEGRATION_ADDR is required" && exit 1)
+	@go test -v -count=1 -run TestLiveNomad .
 
 test-coverage: ## Run tests with coverage
 	@echo "$(BLUE)Running tests with coverage...$(NC)"
@@ -138,7 +142,7 @@ test-coverage: ## Run tests with coverage
 
 test-race: ## Run tests with race detection
 	@echo "$(BLUE)Running tests with race detection...$(NC)"
-	@go test -v -race ./test/...
+	@go test -v -race . ./utils/... ./types/... ./tools/... ./prompts/... ./test/unit/...
 
 test-benchmark: ## Run benchmark tests
 	@echo "$(BLUE)Running benchmark tests...$(NC)"
@@ -185,7 +189,7 @@ lint: ## Run linter
 		echo "$(GREEN)✅ Linting completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠️  golangci-lint not found, installing...$(NC)"; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0; \
 		$(GOPATH)/bin/golangci-lint run || $(HOME)/go/bin/golangci-lint run; \
 		echo "$(GREEN)✅ Linting completed$(NC)"; \
 	fi
@@ -248,7 +252,12 @@ docker-build: ## Build Docker image
 
 docker-run: docker-build ## Build and run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
-	@docker run --rm -p 8080:8080 mcp-nomad:latest -transport=streamable-http
+	@docker run --rm -p 8080:8080 \
+		-e NOMAD_ADDR \
+		-e NOMAD_TOKEN \
+		-e MCP_TOKEN \
+		-e MCP_ALLOWED_ORIGINS \
+		mcp-nomad:latest -transport=streamable-http -listen-address=0.0.0.0 -port=8080
 
 docker-push: docker-build ## Push Docker image to registry
 	@echo "$(BLUE)Pushing Docker image...$(NC)"
@@ -315,7 +324,7 @@ install-tools: ## Install development tools
 	@echo "$(YELLOW)Installing air for hot reload...$(NC)"
 	@go install github.com/cosmtrek/air@latest
 	@echo "$(YELLOW)Installing golangci-lint...$(NC)"
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 	@echo "$(YELLOW)Installing gosec for security scanning...$(NC)"
 	@go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
 	@echo "$(YELLOW)Installing goimports...$(NC)"

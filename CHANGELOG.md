@@ -4,6 +4,42 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Security
+
+- HTTP transports require a separate `MCP_TOKEN` before connecting to Nomad. Missing or invalid bearer credentials are rejected; the MCP bearer is never forwarded as a Nomad ACL token.
+- HTTP listeners bind to loopback by default. Origin validation uses exact canonical origins, including standard ports and IPv6 loopback, and rejects ambiguous or malformed headers.
+- Variable CAS inputs are validated without lossy numeric coercion. Explicit CAS zero is never silently downgraded to an unconditional operation.
+
+### Fixed
+
+- Decode variable `Items` and metadata from Nomad responses, put CAS in query parameters, and reject unsupported variable lock operations before sending requests.
+- Decode job history from the `Versions` response envelope and preserve namespace and region query handling.
+- Embed README and LICENSE in installed binaries, validate resource URIs and namespaces, and report a consistent server version and stable startup time.
+- Share npm CLI and programmatic binary resolution across all six supported platforms, including Windows `.exe` filenames.
+
+### Added
+
+- Explicit `-read-only` mode, tool safety annotations, and structured JSON results with output schemas and legacy text fallback. Code Mode orchestration remains client-side.
+- Regression tests for Nomad contracts, HTTP authentication and origins, embedded resources, MCP tool discovery/calls, and npm launcher resolution.
+- Opt-in live tests (`make test-live`, `NOMAD_INTEGRATION_ADDR`) and a CI job running them against a disposable, checksum-verified Nomad server.
+- Documentation for HTTP ingress authentication and origin validation semantics:
+	- separate `MCP_TOKEN` vs `NOMAD_TOKEN`
+	- required `Authorization: Bearer` for HTTP transports
+	- strict `MCP_ALLOWED_ORIGINS` parsing and canonical default-port matching
+	- loopback defaults and Inspector origin guidance (`localhost:6274` / `127.0.0.1:6274`)
+- Documentation of variable CAS semantics (omitted vs explicit zero), unsupported `lock_operation`, and structured tool output envelopes (`{ "items": [...] }`) with text fallback behavior.
+- Documentation of Code Mode scope as client-side MCP tool orchestration only.
+
+### Changed
+
+- Updated `github.com/mark3labs/mcp-go` to `v1.5.0` and aligned build-time version injection with MCP initialization and system resources.
+- README and development docs now use `go run .` for local execution and no longer document a nonexistent `-nomad-addr` flag.
+- `Makefile` test targets now cover root and key packages (`.`, `utils`, `types`, `tools`, `prompts`, plus `test/unit`).
+- `Makefile docker-run` now binds HTTP transport on `0.0.0.0` explicitly and forwards `NOMAD_ADDR`, `NOMAD_TOKEN`, `MCP_TOKEN`, and `MCP_ALLOWED_ORIGINS` from the caller environment.
+- CI test workflow now runs the npm launcher test command and configures Node.js in the test job while keeping Go pinned at `1.26.2`.
+- CI uses golangci-lint v2 (migrated configuration) and a pinned gosec release instead of `@master`, with GitHub Actions updated off the deprecated Node 20 runtime. The previously failing lint and security jobs now pass locally.
+- Renamed `types.NodeResourcesDetail` CPU fields to `CPU`, `CPUShares` and `TotalCPUCores`; JSON field names are unchanged.
+
 ## [0.3.0] — 2026-05-03
 
 ### Security

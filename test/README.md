@@ -13,8 +13,7 @@ test/
 │   ├── tools_test.go
 │   └── benchmark_test.go
 ├── integration/             # Integration tests
-│   ├── nomad_client_integration_test.go
-│   └── real_nomad_test.go
+│   └── nomad_client_integration_test.go
 ├── mocks/                   # Mock implementations
 │   └── nomad_client_mock.go
 ├── testdata/                # Test data and fixtures
@@ -39,12 +38,17 @@ test/
 - **Speed**: Medium execution (1-5 seconds)
 - **Dependencies**: Minimal external dependencies
 
-### Real Integration Tests
-- **Location**: `test/integration/real_nomad_test.go`
-- **Purpose**: Test against actual Nomad server
-- **Mocking**: None - uses real Nomad API
-- **Speed**: Slow execution (5-30 seconds)
-- **Dependencies**: Requires running Nomad server
+### Live Nomad Tests
+- **Location**: `nomad_live_test.go` (repository root)
+- **Purpose**: Exercise the full MCP server (policy, structured output validation) against a real Nomad API
+- **Opt-in**: Skipped unless `NOMAD_INTEGRATION_ADDR` is set; `NOMAD_ADDR` is deliberately ignored so a real cluster is never targeted by accident
+- **Side effects**: Creates and deletes uniquely named variables and a batch job; only point it at a disposable agent
+- **CI**: The `live-nomad` job starts a checksum-verified single-server Nomad agent on loopback
+
+```bash
+nomad agent -config=dev-server.hcl   # server-only, bind/advertise 127.0.0.1
+NOMAD_INTEGRATION_ADDR=http://127.0.0.1:4646 make test-live
+```
 
 ## Running Tests
 
@@ -66,6 +70,9 @@ make test-coverage
 # Run tests with race detection
 make test-race
 
+# Run npm launcher tests (from repo root)
+node --test packages/npm-mcp-nomad/index.test.js
+
 # Run benchmark tests
 make test-benchmark
 
@@ -80,7 +87,7 @@ make clean-test
 
 ```bash
 # Run unit tests
-go test -v ./test/unit/...
+go test -v . ./utils/... ./types/... ./tools/... ./prompts/... ./test/unit/...
 
 # Run integration tests
 go test -v ./test/integration/...
@@ -90,7 +97,7 @@ go test -v -coverprofile=coverage.out ./test/...
 go tool cover -html=coverage.out -o coverage.html
 
 # Run tests with race detection
-go test -v -race ./test/...
+go test -v -race . ./utils/... ./types/... ./tools/... ./prompts/... ./test/unit/...
 
 # Run benchmark tests
 go test -v -bench=. ./test/...
@@ -160,6 +167,7 @@ Tests are automatically run on:
 - Push to main/develop branches
 - Pull requests
 - Go **1.26.2** only (pinned in `go.mod` and `.github/workflows/test.yml` for a consistent toolchain in CI/releases)
+- Node.js launcher tests via `node --test packages/npm-mcp-nomad/index.test.js`
 
 ### GitHub Actions Workflow
 

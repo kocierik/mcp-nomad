@@ -104,7 +104,6 @@ func GetVolumeHandler(client utils.VolumeAPI, logger *log.Logger) func(context.C
 		}
 
 		volume, err := client.GetVolume(ctx, volumeID)
-
 		if err != nil {
 			logger.Printf("Error getting volume: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get volume", err), nil
@@ -134,7 +133,6 @@ func DeleteVolumeHandler(client utils.VolumeAPI, logger *log.Logger) func(contex
 		}
 
 		err := client.DeleteVolume(ctx, volumeID)
-
 		if err != nil {
 			logger.Printf("Error deleting volume: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete volume", err), nil

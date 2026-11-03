@@ -215,7 +215,8 @@ func ListJobsHandler(client utils.JobAPI, logger *log.Logger) func(context.Conte
 		detailedJobs := make([]EnhancedJobDetail, 0, len(initialJobStubs))
 
 		prefix, _ := arguments["prefix"].(string)
-		for _, stub := range initialJobStubs {
+		for i := range initialJobStubs {
+			stub := &initialJobStubs[i]
 			// Nomad's /v1/jobs ignores ?status=, so filter here.
 			if statusFilter != "" && stub.Status != statusFilter {
 				continue

@@ -2,6 +2,9 @@
   "name": "@kocierik/mcp-nomad",
   "version": "0.3.2",
   "main": "./index.js",
+  "scripts": {
+    "test": "node --test index.test.js"
+  },
   "bin": {
     "mcp-nomad": "bin/cli"
   },

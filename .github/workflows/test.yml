@@ -9,33 +9,31 @@ on:
 permissions:
   contents: read
 
+env:
+  GO_VERSION: 1.26.2
+  NOMAD_VERSION: 2.1.1
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [1.26.2]
-
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v7
       with:
-        go-version: ${{ matrix.go-version }}
+        go-version: ${{ env.GO_VERSION }}
 
-    - name: Cache Go modules
-      uses: actions/cache@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
       with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
+        node-version: 24
 
     - name: Install dependencies
-      run: |
-        go mod download
-        go mod tidy
+      run: go mod download
+
+    - name: Run npm launcher tests
+      run: node --test packages/npm-mcp-nomad/index.test.js
 
     - name: Run unit tests
       run: make test-unit
@@ -52,30 +50,69 @@ jobs:
       run: make test-coverage
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v7
       with:
-        file: ./coverage.out
+        files: ./coverage.out
         flags: unittests
-        name: codecov-umbrella
         fail_ci_if_error: false
       continue-on-error: true
+
+  live-nomad:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install Nomad
+      run: |
+        base="https://releases.hashicorp.com/nomad/${NOMAD_VERSION}"
+        curl -fsSLO "${base}/nomad_${NOMAD_VERSION}_linux_amd64.zip"
+        curl -fsSLO "${base}/nomad_${NOMAD_VERSION}_SHA256SUMS"
+        grep "nomad_${NOMAD_VERSION}_linux_amd64.zip" "nomad_${NOMAD_VERSION}_SHA256SUMS" | sha256sum -c -
+        unzip -q "nomad_${NOMAD_VERSION}_linux_amd64.zip" -d "$RUNNER_TEMP"
+
+    - name: Start disposable Nomad server
+      run: |
+        cat > "$RUNNER_TEMP/nomad.hcl" <<EOF
+        data_dir  = "$RUNNER_TEMP/nomad-data"
+        bind_addr = "127.0.0.1"
+        advertise {
+          http = "127.0.0.1"
+          rpc  = "127.0.0.1"
+          serf = "127.0.0.1"
+        }
+        server {
+          enabled          = true
+          bootstrap_expect = 1
+        }
+        EOF
+        "$RUNNER_TEMP/nomad" agent -config="$RUNNER_TEMP/nomad.hcl" > "$RUNNER_TEMP/nomad.log" 2>&1 &
+        for _ in $(seq 1 60); do
+          if curl -fs http://127.0.0.1:4646/v1/status/leader | grep -q 4647; then exit 0; fi
+          sleep 1
+        done
+        cat "$RUNNER_TEMP/nomad.log"
+        exit 1
+
+    - name: Run live Nomad tests
+      run: make test-live
+      env:
+        NOMAD_INTEGRATION_ADDR: http://127.0.0.1:4646
 
   benchmark:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v7
       with:
-        go-version: 1.26.2
-
-    - name: Install dependencies
-      run: |
-        go mod download
-        go mod tidy
+        go-version: ${{ env.GO_VERSION }}
 
     - name: Run benchmarks
       run: make test-benchmark
@@ -83,17 +120,17 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
-        go-version: 1.26.2
+        go-version: ${{ env.GO_VERSION }}
 
-    - name: golangci-lint (go install@v1.64.8 matches go.mod toolchain; prebuilt GH action binaries can lag Go)
-      run: |
-        go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
-        golangci-lint run --timeout=5m
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: v2.15.0
 
   security:
     runs-on: ubuntu-latest
@@ -101,9 +138,9 @@ jobs:
       CGO_ENABLED: 0
       GOFLAGS: -buildvcs=false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
+      uses: securego/gosec@v2.30.0
       with:
         args: ./...

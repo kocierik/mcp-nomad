@@ -34,7 +34,7 @@ func TestNodeDecodesRealAPIShape(t *testing.T) {
 	if n.Resources.CPU != 4000 || n.Resources.MemoryMB != 8192 || n.Resources.DiskMB != 51200 {
 		t.Fatalf("resources not decoded: %+v", n.Resources)
 	}
-	if nr := n.NodeResources; nr.Cpu.CpuShares != 20000 || nr.Cpu.TotalCpuCores != 10 || nr.Memory.MemoryMB != 19994 || nr.Disk.DiskMB != 21488 {
+	if nr := n.NodeResources; nr.CPU.CPUShares != 20000 || nr.CPU.TotalCPUCores != 10 || nr.Memory.MemoryMB != 19994 || nr.Disk.DiskMB != 21488 {
 		t.Fatalf("node resources not decoded: %+v", nr)
 	}
 }

@@ -46,9 +46,9 @@ type NodeResources struct {
 // NodeResourcesDetail is the node's fingerprinted capacity. Recent Nomad versions
 // leave the legacy Resources/Reserved fields zeroed and report capacity here.
 type NodeResourcesDetail struct {
-	Cpu struct {
-		CpuShares     int `json:"CpuShares"`
-		TotalCpuCores int `json:"TotalCpuCores"`
+	CPU struct {
+		CPUShares     int `json:"CpuShares"`
+		TotalCPUCores int `json:"TotalCpuCores"`
 	} `json:"Cpu"`
 	Memory struct {
 		MemoryMB int `json:"MemoryMB"`

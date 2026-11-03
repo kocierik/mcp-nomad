@@ -105,7 +105,7 @@ func buildTLSConfig() *tls.Config {
 	}
 
 	if os.Getenv("NOMAD_SKIP_VERIFY") == "true" {
-		cfg.InsecureSkipVerify = true
+		cfg.InsecureSkipVerify = true // #nosec G402 -- explicit operator opt-in mirroring the Nomad CLI
 	}
 
 	if name := os.Getenv("NOMAD_TLS_SERVER_NAME"); name != "" {

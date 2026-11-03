@@ -43,7 +43,8 @@ func NewMockNomadServer() *MockNomadServer {
 
 		jobID := rest
 
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet:
 			job := types.Job{
 				ID:   jobID,
 				Name: jobID,
@@ -51,7 +52,7 @@ func NewMockNomadServer() *MockNomadServer {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(job)
-		} else if r.Method == "DELETE" {
+		case http.MethodDelete:
 			response := map[string]interface{}{
 				"EvalID": "eval-456",
 			}
@@ -62,11 +63,12 @@ func NewMockNomadServer() *MockNomadServer {
 
 	// Job submission endpoint
 	mux.HandleFunc("/v1/jobs", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet:
 			jobs := testdata.SampleJobs
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(jobs)
-		} else if r.Method == "POST" {
+		case http.MethodPost:
 			// Handle job submission (HCL parsing)
 			// For testing, we'll just return a successful response
 			response := map[string]interface{}{
@@ -116,7 +118,8 @@ func NewMockNomadServer() *MockNomadServer {
 	mux.HandleFunc("/v1/node/", func(w http.ResponseWriter, r *http.Request) {
 		nodeID := r.URL.Path[len("/v1/node/"):]
 
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet:
 			node := types.Node{
 				ID:     nodeID,
 				Name:   nodeID,
@@ -124,7 +127,7 @@ func NewMockNomadServer() *MockNomadServer {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(node)
-		} else if r.Method == "POST" {
+		case http.MethodPost:
 			// Handle drain/eligibility operations
 			// Check if it's an eligibility request by path
 			if strings.Contains(r.URL.Path, "/eligibility") {
@@ -157,13 +160,14 @@ func NewMockNomadServer() *MockNomadServer {
 	})
 
 	mux.HandleFunc("/v1/namespace/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
+		switch r.Method {
+		case http.MethodPost:
 			response := map[string]interface{}{
 				"CreateIndex": 1,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
-		} else if r.Method == "DELETE" {
+		case http.MethodDelete:
 			w.WriteHeader(http.StatusOK)
 		}
 	})
@@ -209,13 +213,14 @@ func NewMockNomadServer() *MockNomadServer {
 	})
 
 	mux.HandleFunc("/v1/var/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet:
 			variable := testdata.SampleVariables[0]
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(variable)
-		} else if r.Method == "PUT" {
+		case http.MethodPut:
 			w.WriteHeader(http.StatusOK)
-		} else if r.Method == "DELETE" {
+		case http.MethodDelete:
 			w.WriteHeader(http.StatusOK)
 		}
 	})
@@ -228,15 +233,12 @@ func NewMockNomadServer() *MockNomadServer {
 	})
 
 	mux.HandleFunc("/v1/acl/token/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		switch r.Method {
+		case http.MethodGet, http.MethodPost:
 			token := testdata.SampleACLTokens[0]
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(token)
-		} else if r.Method == "POST" {
-			token := testdata.SampleACLTokens[0]
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(token)
-		} else if r.Method == "DELETE" {
+		case http.MethodDelete:
 			w.WriteHeader(http.StatusOK)
 		}
 	})

@@ -1,16 +1,39 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"math"
+	"strings"
 
 	"github.com/kocierik/mcp-nomad/types"
 	"github.com/kocierik/mcp-nomad/utils"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
+
+type createVariableArguments struct {
+	Path          string  `json:"path"`
+	Key           string  `json:"key"`
+	Value         string  `json:"value"`
+	Namespace     string  `json:"namespace,omitempty"`
+	CAS           *uint64 `json:"cas,omitempty"`
+	LockOperation *string `json:"lock_operation,omitempty"`
+}
+
+type deleteVariableArguments struct {
+	Path      string  `json:"path"`
+	Namespace string  `json:"namespace,omitempty"`
+	CAS       *uint64 `json:"cas,omitempty"`
+}
+
+type variableDeleteCASAPI interface {
+	DeleteVariableCAS(ctx context.Context, path, namespace string, cas *uint64) error
+}
 
 // RegisterVariableTools registers all variable-related tools
 func RegisterVariableTools(s *server.MCPServer, nomadClient utils.VariableAPI, logger *log.Logger) {
@@ -68,10 +91,6 @@ func RegisterVariableTools(s *server.MCPServer, nomadClient utils.VariableAPI, l
 		),
 		mcp.WithNumber("cas",
 			mcp.Description("Check-and-set value for optimistic concurrency control"),
-		),
-		mcp.WithString("lock_operation",
-			mcp.Description("Lock operation to perform (acquire, release)"),
-			mcp.Enum("acquire", "release"),
 		),
 	)
 	s.AddTool(createVariableTool, CreateVariableHandler(nomadClient, logger))
@@ -171,78 +190,55 @@ func GetVariableHandler(client utils.VariableAPI, logger *log.Logger) func(conte
 // CreateVariableHandler returns a handler for creating a variable
 func CreateVariableHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		arguments, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
+		arguments, err := parseCreateVariableArguments(request)
+		if err != nil {
+			if strings.Contains(err.Error(), "cas") {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
 			return mcp.NewToolResultError("Invalid arguments"), nil
 		}
 
-		path, ok := arguments["path"].(string)
-		if !ok || path == "" {
+		if arguments.Path == "" {
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		key, ok := arguments["key"].(string)
-		if !ok || key == "" {
+		if arguments.Key == "" {
 			return mcp.NewToolResultError("key is required"), nil
 		}
 
-		value, ok := arguments["value"].(string)
-		if !ok || value == "" {
+		if arguments.Value == "" {
 			return mcp.NewToolResultError("value is required"), nil
 		}
 
-		namespace := utils.EffectiveToolNamespace(arguments)
+		namespace := utils.EffectiveToolNamespace(map[string]interface{}{"namespace": arguments.Namespace})
 
-		cas := 0
-		if c, ok := arguments["cas"].(float64); ok && c > 0 {
-			cas = int(c)
-		}
-
-		lockOp := ""
-		if l, ok := arguments["lock_operation"].(string); ok && l != "" {
-			lockOp = l
-		}
-
-		// Create a map with the key-value pair
-		items := map[string]string{
-			key: value,
-		}
-
-		// Create the variable value with the required structure
-		variableValue := map[string]interface{}{
-			"Items": items,
-		}
-
-		// Add CAS if provided
-		if cas > 0 {
-			variableValue["CAS"] = cas
-		}
-
-		// Add lock operation if provided
-		if lockOp != "" {
-			variableValue["LockOperation"] = lockOp
-		}
-
-		// Convert to JSON string
-		jsonValue, err := json.Marshal(variableValue)
+		cas, explicitCAS, err := parseVariableCASArgument(arguments.CAS)
 		if err != nil {
-			logger.Printf("Error marshaling variable value: %v", err)
-			return mcp.NewToolResultErrorFromErr("Failed to format variable value", err), nil
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		if arguments.LockOperation != nil && strings.TrimSpace(*arguments.LockOperation) != "" {
+			return mcp.NewToolResultError("lock_operation is unsupported: lease payload is not available"), nil
+		}
+
+		items := map[string]string{
+			arguments.Key: arguments.Value,
 		}
 
 		variable := types.Variable{
-			Path:  path,
-			Value: string(jsonValue),
+			Path:  arguments.Path,
+			Items: items,
+			CAS:   explicitCAS,
 		}
 
-		err = client.CreateVariable(ctx, variable, namespace, cas, lockOp)
+		err = client.CreateVariable(ctx, variable, namespace, cas, "")
 		if err != nil {
 			logger.Printf("Error creating variable: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to create variable", err), nil
 		}
 
 		result := map[string]string{
-			"message": fmt.Sprintf("Variable created at path: %s with key: %s", path, key),
+			"message": fmt.Sprintf("Variable created at path: %s with key: %s", arguments.Path, arguments.Key),
 		}
 
 		resultJSON, err := json.MarshalIndent(result, "", "  ")
@@ -254,34 +250,138 @@ func CreateVariableHandler(client utils.VariableAPI, logger *log.Logger) func(co
 	}
 }
 
+func parseCreateVariableArguments(request mcp.CallToolRequest) (createVariableArguments, error) {
+	var arguments createVariableArguments
+	if err := decodeToolArguments(request, &arguments); err != nil {
+		if rawArgumentsContainKey(request, "cas") {
+			return createVariableArguments{}, fmt.Errorf("cas must be a non-negative integer")
+		}
+		return createVariableArguments{}, err
+	}
+	return arguments, nil
+}
+
+func parseDeleteVariableArguments(request mcp.CallToolRequest) (deleteVariableArguments, error) {
+	var arguments deleteVariableArguments
+	if err := decodeToolArguments(request, &arguments); err != nil {
+		if rawArgumentsContainKey(request, "cas") {
+			return deleteVariableArguments{}, fmt.Errorf("cas must be a non-negative integer")
+		}
+		return deleteVariableArguments{}, err
+	}
+	return arguments, nil
+}
+
+func rawArgumentsContainKey(request mcp.CallToolRequest, key string) bool {
+	if argumentsMap, ok := request.Params.Arguments.(map[string]interface{}); ok {
+		_, found := argumentsMap[key]
+		if found {
+			return true
+		}
+	}
+
+	rawArguments := request.Params.RawArguments
+	if len(rawArguments) == 0 {
+		if request.Params.Arguments == nil {
+			return false
+		}
+		serializedArguments, err := json.Marshal(request.Params.Arguments)
+		if err != nil {
+			return false
+		}
+		rawArguments = serializedArguments
+	}
+
+	var rawMap map[string]json.RawMessage
+	if err := json.Unmarshal(rawArguments, &rawMap); err != nil {
+		return false
+	}
+	_, found := rawMap[key]
+	return found
+}
+
+func decodeToolArguments(request mcp.CallToolRequest, target interface{}) error {
+	rawArguments := request.Params.RawArguments
+	if len(rawArguments) == 0 {
+		if request.Params.Arguments == nil {
+			rawArguments = []byte("{}")
+		} else {
+			serializedArguments, err := json.Marshal(request.Params.Arguments)
+			if err != nil {
+				return err
+			}
+			rawArguments = serializedArguments
+		}
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(rawArguments))
+	decoder.UseNumber()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("unexpected trailing arguments")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func parseVariableCASArgument(casValue *uint64) (cas int, explicit *uint64, err error) {
+	if casValue == nil {
+		return 0, nil, nil
+	}
+	if *casValue > uint64(math.MaxInt) {
+		return 0, nil, fmt.Errorf("cas exceeds supported range")
+	}
+
+	casCopy := *casValue
+	return int(casCopy), &casCopy, nil
+}
+
 // DeleteVariableHandler returns a handler for deleting a variable
 func DeleteVariableHandler(client utils.VariableAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		arguments, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
+		arguments, err := parseDeleteVariableArguments(request)
+		if err != nil {
+			if strings.Contains(err.Error(), "cas") {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
 			return mcp.NewToolResultError("Invalid arguments"), nil
 		}
 
-		path, ok := arguments["path"].(string)
-		if !ok || path == "" {
+		if arguments.Path == "" {
 			return mcp.NewToolResultError("path is required"), nil
 		}
 
-		namespace := utils.EffectiveToolNamespace(arguments)
+		namespace := utils.EffectiveToolNamespace(map[string]interface{}{"namespace": arguments.Namespace})
 
-		cas := 0
-		if c, ok := arguments["cas"].(float64); ok && c > 0 {
-			cas = int(c)
+		cas, explicitCAS, err := parseVariableCASArgument(arguments.CAS)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		err := client.DeleteVariable(ctx, path, namespace, cas)
+		if arguments.CAS != nil {
+			if casAPI, ok := client.(variableDeleteCASAPI); ok {
+				err = casAPI.DeleteVariableCAS(ctx, arguments.Path, namespace, explicitCAS)
+			} else if cas == 0 {
+				return mcp.NewToolResultError("client does not support explicit cas zero for deletion"), nil
+			} else {
+				err = client.DeleteVariable(ctx, arguments.Path, namespace, cas)
+			}
+		} else {
+			err = client.DeleteVariable(ctx, arguments.Path, namespace, 0)
+		}
 		if err != nil {
 			logger.Printf("Error deleting variable: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to delete variable", err), nil
 		}
 
 		result := map[string]string{
-			"message": fmt.Sprintf("Variable deleted at path: %s", path),
+			"message": fmt.Sprintf("Variable deleted at path: %s", arguments.Path),
 		}
 
 		resultJSON, err := json.MarshalIndent(result, "", "  ")

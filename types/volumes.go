@@ -2,7 +2,7 @@ package types
 
 // Volume represents a volume in Nomad
 type Volume struct {
-	//ID                    string             `json:"ID"`
+	// ID                    string             `json:"ID"`
 	Name                  string             `json:"Name"`
 	Namespace             string             `json:"Namespace"`
 	ExternalID            string             `json:"ExternalID"`

@@ -1,33 +1,3 @@
 #!/usr/bin/env node
 
-const path = require("path");
-const childProcess = require("child_process");
-
-const BINARY_DISTRIBUTION_PACKAGES = {
-  darwin_x64: "mcp-nomad-darwin-x64",
-  darwin_arm64: "mcp-nomad-darwin-arm64",
-  linux_x64: "mcp-nomad-linux-x64",
-  linux_arm64: "mcp-nomad-linux-arm64",
-  freebsd_x64: "mcp-nomad-freebsd-x64",
-  freebsd_arm64: "mcp-nomad-freebsd-arm64",
-  win32_x64: "mcp-nomad-win32-x64",
-  win32_arm64: "mcp-nomad-win32-arm64",
-};
-
-const binaryName = "mcp-nomad";
-
-const platformSpecificPackageName = BINARY_DISTRIBUTION_PACKAGES[`${process.platform}_${process.arch}`];
-
-function getBinaryPath() {
-  try {
-    return require.resolve(`@kocierik/${platformSpecificPackageName}/bin/${binaryName}`);
-  } catch (e) {
-    return path.join(__dirname, "..", "node_modules", `@kocierik/${platformSpecificPackageName}`, "bin", binaryName);
-  }
-}
-
-const args = process.argv.slice(2);
-
-childProcess.execFileSync(getBinaryPath(), args, {
-  stdio: "inherit",
-});
+require("../index.js").runBinary(...process.argv.slice(2));

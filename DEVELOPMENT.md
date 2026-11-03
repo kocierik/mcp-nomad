@@ -5,15 +5,31 @@
 ### Nomad Server
 ```bash
 export NOMAD_ADDR=http://localhost:4646
-export NOMAD_TOKEN=your-token-here
+export NOMAD_TOKEN=<your-nomad-acl-token>
 ```
 
 ### MCP Server
 The binary does not read `MCP_TRANSPORT` from `.env`; use CLI flags (default **`stdio`**). HTTP example:
 
 ```bash
-./mcp-nomad -transport=streamable-http -port=8080
+export MCP_TOKEN="<set-a-static-ingress-token>"
+export MCP_ALLOWED_ORIGINS="http://localhost:6274,http://127.0.0.1:6274"
+./mcp-nomad -transport=streamable-http -listen-address=127.0.0.1 -port=8080
 ```
+
+PowerShell equivalent:
+
+```powershell
+$env:MCP_TOKEN = "<set-a-static-ingress-token>"
+$env:MCP_ALLOWED_ORIGINS = "http://localhost:6274,http://127.0.0.1:6274"
+./mcp-nomad -transport=streamable-http -listen-address=127.0.0.1 -port=8080
+```
+
+Notes:
+- `MCP_TOKEN` is required for `sse` and `streamable-http`.
+- `NOMAD_TOKEN` remains downstream-only for Nomad API calls.
+- HTTP clients must send `Authorization: Bearer <MCP_TOKEN>` on every request.
+- `MCP_ALLOWED_ORIGINS` values must be exact origins only (no path/query/fragment/userinfo).
 
 ### Development
 ```bash
@@ -48,6 +64,14 @@ make run-sse
 # Streamable HTTP (Inspector / `:8080/mcp`)
 make run-http
 ```
+
+Alternative launch command from source root:
+
+```bash
+go run . -transport=streamable-http -listen-address=127.0.0.1 -port=8080
+```
+
+`go run main.go` is not the supported project entrypoint for this repository layout.
 
 ### 4. Development Mode (with hot reload)
 ```bash
@@ -95,6 +119,10 @@ make build-all
 make docker-build
 make docker-run
 ```
+
+`make docker-run` forwards `NOMAD_ADDR`, `NOMAD_TOKEN`, `MCP_TOKEN`, and `MCP_ALLOWED_ORIGINS` from your shell and binds `-listen-address=0.0.0.0` explicitly for container ingress.
+
+If Nomad runs outside the container, avoid `NOMAD_ADDR=http://localhost:4646` inside containerized execution because container `localhost` does not point to the host Nomad process.
 
 ## Development Tools
 

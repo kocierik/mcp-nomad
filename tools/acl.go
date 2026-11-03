@@ -461,7 +461,6 @@ func CreateACLRoleHandler(nomadClient utils.ACLToolsDeps, logger *log.Logger) fu
 		} else if policyStr, ok := policiesParam.(string); ok && policyStr != "" {
 			policyNames = append(policyNames, policyStr)
 		} else if policyMap, ok := policiesParam.(map[string]interface{}); ok {
-
 			if policyArr, ok := policyMap["Policies"].([]interface{}); ok {
 				for _, p := range policyArr {
 					if pm, ok := p.(map[string]interface{}); ok {

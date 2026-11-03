@@ -29,6 +29,19 @@ Then check if the server is working by running:
 go run .
 ```
 
+Run launcher tests from the repository root:
+
+```bash
+node --test packages/npm-mcp-nomad/index.test.js
+```
+
+For HTTP transports (`sse` or `streamable-http`), set a separate MCP ingress token and allowed origins:
+
+```bash
+export MCP_TOKEN="<set-a-static-ingress-token>"
+export MCP_ALLOWED_ORIGINS="http://localhost:6274,http://127.0.0.1:6274"
+```
+
 Once built, you can proceed to add configuration to `claude_desktop_config.json` file:
 
 ```json

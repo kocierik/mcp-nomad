@@ -111,25 +111,74 @@ go install github.com/kocierik/mcp-nomad
 Command-line flags (also relevant when pairing with MCP Inspector against a manually started binary):
 
 ```
-  -nomad-addr string
-    	Nomad server address (default "http://localhost:4646")
-  -port string
-    	Port for HTTP server (default "8080")
   -transport string
-    	Transport type (stdio, sse, or streamable-http) (default "stdio")
+	    Transport type (stdio, sse, or streamable-http) (default "stdio")
+  -port string
+	    Port for HTTP server (default "8080")
+  -listen-address string
+	    Address for HTTP server listener (default "127.0.0.1")
+  -read-only
+	    Register only read tools (default "false")
 ```
 
 ### Environment variables
 
-- `NOMAD_ADDR`: Nomad HTTP API address (default: http://localhost:4646)
+- `NOMAD_ADDR`: Nomad HTTP API address (default: http://127.0.0.1:4646)
 - `NOMAD_TOKEN`: Nomad ACL token (optional)
+- `MCP_TOKEN`: required for `sse` and `streamable-http` transports; this is separate from `NOMAD_TOKEN`
+- `MCP_ALLOWED_ORIGINS`: optional comma-separated exact HTTP(S) origins for HTTP transports (strict validation)
 - `NOMAD_REGION`: forwarded as the REST `region` query parameter when callers do not override it (multi-region clusters)
-- `NOMAD_NAMESPACE`: default namespace for tools that accept an optional namespace when the tool omits it
+- `NOMAD_NAMESPACE`: default namespace for tools/resources that accept an optional namespace when the request omits it (an explicit namespace argument/query still overrides this default)
 - TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME` (see `utils/client.go` / `buildTLSConfig`)
 
 The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
 
 `NomadClient.MakeRequest` (used only for a few cluster/legacy call sites) rejects paths outside an internal allow-list — prefer typed helpers such as `StopAllocation`.
+
+### HTTP authentication and origin policy
+
+- HTTP transports require `Authorization: Bearer <MCP_TOKEN>` on every request.
+- Authentication identity is a static shared token; it is not OAuth and does not provide per-user delegation.
+- Authentication and downstream Nomad authorization are separate: `MCP_TOKEN` secures MCP ingress; `NOMAD_TOKEN` is used only for Nomad API calls.
+- Requests with no `Origin` header are allowed (after successful auth).
+- Duplicate `Origin` headers are rejected.
+- `MCP_ALLOWED_ORIGINS` entries must be exact origins only: `scheme://host[:port]`.
+- Paths, query strings, fragments, and userinfo are rejected.
+- Empty entries in `MCP_ALLOWED_ORIGINS` are rejected.
+- Canonical default ports are applied, so `https://example.com` and `https://example.com:443` are treated identically (same for HTTP :80).
+- Local defaults are always allowed for the configured port: `http://localhost:<port>`, `http://127.0.0.1:<port>`, `http://[::1]:<port>`.
+
+Set HTTP auth/origin environment variables using placeholders:
+
+```bash
+export MCP_TOKEN="<set-a-static-ingress-token>"
+export MCP_ALLOWED_ORIGINS="http://localhost:6274,http://127.0.0.1:6274"
+```
+
+```powershell
+$env:MCP_TOKEN = "<set-a-static-ingress-token>"
+$env:MCP_ALLOWED_ORIGINS = "http://localhost:6274,http://127.0.0.1:6274"
+```
+
+The MCP Inspector browser UI runs on port `6274`; include those origins explicitly when testing HTTP transports.
+
+### Tool behavior notes
+
+- `-read-only=true` removes all write tools from discovery and from callable operations.
+- Structured tool outputs expose objects directly and wrap arrays as `{ "items": [...] }`.
+- Tool text output is preserved as fallback content.
+- Allocation log responses remain text-only.
+- Embedded README/license resources are served from compiled assets, not from the current working directory.
+- System resource `start_time` is initialized once at startup and remains stable for the running process.
+- Variable CAS semantics:
+  - Create: omitted `cas` means no CAS query; explicit `cas: 0` creates only if the variable does not already exist.
+  - Delete: omitted `cas` is unconditional delete; explicit `cas: 0` is a conditional CAS=0 delete.
+  - Large numeric values are decoded with `UseNumber` and preserved as raw numeric values in structured output.
+- `lock_operation` for variables is deliberately unsupported and rejected.
+
+### Code Mode scope
+
+This server is compatible with client-side Code Mode orchestration through the MCP tool catalog. It does not implement a runtime gateway, arbitrary code execution endpoint, or server-side search/execute runtime.
 
 ## Browse with MCP Inspector
 
@@ -146,10 +195,14 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, start the binary in another terminal first:
 
 ```bash
-go run . -transport=streamable-http -port=8080
+go run . -transport=streamable-http -listen-address=127.0.0.1 -port=8080
 ```
 
 Then open **`http://localhost:8080/mcp`** in the Inspector. For `-transport=sse`, use **`http://localhost:8080/sse`**.
+
+For container or remote-host ingress, use `-listen-address=0.0.0.0` intentionally and put TLS/auth hardening at a trusted reverse proxy boundary.
+
+If running in Docker, `localhost` inside the container is the container itself. Set `NOMAD_ADDR` to a reachable host/network address for the Nomad cluster.
 
 ## License
 

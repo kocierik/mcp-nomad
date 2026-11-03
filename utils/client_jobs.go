@@ -126,16 +126,7 @@ func (c *NomadClient) StopJob(ctx context.Context, jobID, namespace string, purg
 
 // GetJobVersions returns the versions of a job
 func (c *NomadClient) GetJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
-	path := fmt.Sprintf("/v1/job/%s/versions", jobID)
-	path += JobVersionsNamespaceQuerySuffix(namespace)
-
-	var versions []types.Job
-	err := c.get(ctx, path, &versions)
-	if err != nil {
-		return nil, err
-	}
-
-	return versions, nil
+	return c.getJobVersions(ctx, jobID, namespace)
 }
 
 // GetJobSubmission retrieves the original job submission
@@ -155,6 +146,10 @@ func (c *NomadClient) GetJobSubmission(ctx context.Context, jobID, namespace str
 
 // ListJobVersions lists all versions of a job
 func (c *NomadClient) ListJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
+	return c.getJobVersions(ctx, jobID, namespace)
+}
+
+func (c *NomadClient) getJobVersions(ctx context.Context, jobID, namespace string) ([]types.Job, error) {
 	path := fmt.Sprintf("job/%s/versions", jobID)
 
 	queryParams := make(map[string]string)
@@ -163,6 +158,13 @@ func (c *NomadClient) ListJobVersions(ctx context.Context, jobID, namespace stri
 	respBody, err := c.makeRequest(ctx, "GET", path, queryParams, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	var envelope struct {
+		Versions []types.Job `json:"Versions"`
+	}
+	if err := json.Unmarshal(respBody, &envelope); err == nil && envelope.Versions != nil {
+		return envelope.Versions, nil
 	}
 
 	var versions []types.Job

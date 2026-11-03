@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kocierik/mcp-nomad/utils"
@@ -13,17 +15,67 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+type ResourceOptions struct {
+	ReadmeContent  string
+	LicenseContent string
+	ServerVersion  string
+	BuildTime      string
+	GoVersion      string
+	StartTime      time.Time
+}
+
 // RegisterResources registers all resources with the MCP server
 func RegisterResources(s *server.MCPServer, nomadClient utils.DynamicResourcesNomad, logger *log.Logger) {
+	RegisterResourcesWithOptions(s, nomadClient, logger, ResourceOptions{})
+}
+
+func RegisterResourcesWithOptions(s *server.MCPServer, nomadClient utils.DynamicResourcesNomad, logger *log.Logger, options ResourceOptions) {
+	if options.StartTime.IsZero() {
+		options.StartTime = time.Now().UTC()
+	}
+
 	// Register static resources
-	registerStaticResources(s, logger)
+	registerStaticResources(s, logger, options)
 
 	// Register dynamic resources
 	registerDynamicResources(s, nomadClient, logger)
 }
 
 // registerStaticResources registers static resources
-func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
+func registerStaticResources(s *server.MCPServer, logger *log.Logger, options ResourceOptions) {
+	readmeContent := options.ReadmeContent
+	if readmeContent == "" {
+		content, err := os.ReadFile("README.md")
+		if err == nil {
+			readmeContent = string(content)
+		}
+	}
+
+	licenseContent := options.LicenseContent
+	if licenseContent == "" {
+		content, err := os.ReadFile("LICENSE")
+		if err == nil {
+			licenseContent = string(content)
+		}
+	}
+
+	serverVersion := options.ServerVersion
+	if serverVersion == "" {
+		serverVersion = "1.0.0"
+	}
+
+	buildTime := options.BuildTime
+	if buildTime == "" {
+		buildTime = "unknown"
+	}
+
+	goVersion := options.GoVersion
+	if goVersion == "" {
+		goVersion = "unknown"
+	}
+
+	startTime := options.StartTime.Format(time.RFC3339)
+
 	// README resource
 	readmeResource := mcp.NewResource(
 		"docs://readme",
@@ -33,8 +85,8 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 	)
 
 	s.AddResource(readmeResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		content, err := os.ReadFile("README.md")
-		if err != nil {
+		if readmeContent == "" {
+			err := fmt.Errorf("README content unavailable")
 			logger.Printf("Error reading README: %v", err)
 			return nil, err
 		}
@@ -43,7 +95,7 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 			mcp.TextResourceContents{
 				URI:      "docs://readme",
 				MIMEType: "text/markdown",
-				Text:     string(content),
+				Text:     readmeContent,
 			},
 		}, nil
 	})
@@ -57,8 +109,8 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 	)
 
 	s.AddResource(licenseResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		content, err := os.ReadFile("LICENSE")
-		if err != nil {
+		if licenseContent == "" {
+			err := fmt.Errorf("LICENSE content unavailable")
 			logger.Printf("Error reading LICENSE: %v", err)
 			return nil, err
 		}
@@ -67,7 +119,7 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 			mcp.TextResourceContents{
 				URI:      "docs://license",
 				MIMEType: "text/plain",
-				Text:     string(content),
+				Text:     licenseContent,
 			},
 		}, nil
 	})
@@ -83,8 +135,10 @@ func registerStaticResources(s *server.MCPServer, logger *log.Logger) {
 	s.AddResource(systemInfoResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		info := map[string]interface{}{
 			"server_name":    "Nomad MCP Server",
-			"server_version": "1.0.0",
-			"start_time":     time.Now().Format(time.RFC3339),
+			"server_version": serverVersion,
+			"build_time":     buildTime,
+			"go_version":     goVersion,
+			"start_time":     startTime,
 			"capabilities": []string{
 				"resources",
 				"tools",
@@ -116,14 +170,22 @@ func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicReso
 		mcp.WithTemplateDescription("Returns the specification for a specific job"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
+	jobSpecTemplateWithNamespace := mcp.NewResourceTemplate(
+		"nomad://jobs/{job_id}/spec{?namespace}",
+		"Job Specification",
+		mcp.WithTemplateDescription("Returns the specification for a specific job"),
+		mcp.WithTemplateMIMEType("application/json"),
+	)
 
-	s.AddResourceTemplate(jobSpecTemplate, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	jobSpecHandler := func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		jobID := extractIDFromURI(request.Params.URI, "jobs/", "/spec")
 		if jobID == "" {
 			return nil, fmt.Errorf("invalid job ID in URI")
 		}
 
-		job, err := nomadClient.GetJob(ctx, jobID, "default")
+		namespace := effectiveNamespaceFromURI(request.Params.URI)
+
+		job, err := nomadClient.GetJob(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job spec: %v", err)
 			return nil, err
@@ -141,7 +203,10 @@ func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicReso
 				Text:     string(jobJSON),
 			},
 		}, nil
-	})
+	}
+
+	s.AddResourceTemplate(jobSpecTemplate, jobSpecHandler)
+	s.AddResourceTemplate(jobSpecTemplateWithNamespace, jobSpecHandler)
 
 	// Node status resource
 	nodeStatusTemplate := mcp.NewResourceTemplate(
@@ -231,15 +296,23 @@ func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicReso
 		mcp.WithTemplateDescription("Returns the history of a specific job"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
+	jobHistoryTemplateWithNamespace := mcp.NewResourceTemplate(
+		"nomad://jobs/{job_id}/history{?namespace}",
+		"Job History",
+		mcp.WithTemplateDescription("Returns the history of a specific job"),
+		mcp.WithTemplateMIMEType("application/json"),
+	)
 
-	s.AddResourceTemplate(jobHistoryTemplate, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	jobHistoryHandler := func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		jobID := extractIDFromURI(request.Params.URI, "jobs/", "/history")
 		if jobID == "" {
 			return nil, fmt.Errorf("invalid job ID in URI")
 		}
 
+		namespace := effectiveNamespaceFromURI(request.Params.URI)
+
 		// Get job versions
-		versions, err := nomadClient.GetJobVersions(ctx, jobID, "default")
+		versions, err := nomadClient.GetJobVersions(ctx, jobID, namespace)
 		if err != nil {
 			logger.Printf("Error getting job versions: %v", err)
 			return nil, err
@@ -257,7 +330,10 @@ func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicReso
 				Text:     string(versionsJSON),
 			},
 		}, nil
-	})
+	}
+
+	s.AddResourceTemplate(jobHistoryTemplate, jobHistoryHandler)
+	s.AddResourceTemplate(jobHistoryTemplateWithNamespace, jobHistoryHandler)
 
 	// Node resources resource
 	nodeResourcesTemplate := mcp.NewResourceTemplate(
@@ -346,19 +422,49 @@ func registerDynamicResources(s *server.MCPServer, nomadClient utils.DynamicReso
 
 // extractIDFromURI extracts an ID from a URI using the given prefix and suffix
 func extractIDFromURI(uri, prefix, suffix string) string {
-	// Find the start of the ID
-	start := len(prefix)
-	if len(uri) <= start {
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		return ""
+	}
+	if parsed.Scheme != "nomad" {
 		return ""
 	}
 
-	// Find the end of the ID
-	end := len(uri) - len(suffix)
-	if end <= start {
+	host := strings.TrimSuffix(prefix, "/")
+	if parsed.Host != host {
 		return ""
 	}
 
-	return uri[start:end]
+	path := parsed.Path
+	if !strings.HasPrefix(path, "/") {
+		return ""
+	}
+	if !strings.HasSuffix(path, suffix) {
+		return ""
+	}
+
+	trimmed := strings.TrimPrefix(path, "/")
+	id := strings.TrimSuffix(trimmed, suffix)
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ""
+	}
+	if strings.Contains(id, "/") {
+		return ""
+	}
+
+	return id
+}
+
+func effectiveNamespaceFromURI(uri string) string {
+	parsed, err := url.Parse(uri)
+	if err == nil {
+		namespace := strings.TrimSpace(parsed.Query().Get("namespace"))
+		if namespace != "" {
+			return namespace
+		}
+	}
+	return utils.EffectiveToolNamespace(nil)
 }
 
 // Remove duplicate volume handlers as they are already defined in volumes.go

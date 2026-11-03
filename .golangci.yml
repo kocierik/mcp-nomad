@@ -1,195 +1,207 @@
+version: "2"
 run:
-  # Match go.mod toolchain (see golangci-lint deprecation: prefer run.go vs linters.stylecheck.go).
-  go: "1.26.2"
-  timeout: 5m
-  tests: true
+  go: 1.26.2
   modules-download-mode: readonly
-
+  tests: true
 linters:
   enable:
-    - gofmt
-    - goimports
-    - govet
-    - errcheck
-    - staticcheck
-    - gosimple
-    - ineffassign
-    - unused
-    - misspell
-    - gosec
-    - gocyclo
+    - gocognit
     - goconst
     - gocritic
+    - gocyclo
     - godot
-    - gofumpt
-    - revive
+    - gosec
+    - misspell
     - mnd
-    - gocognit
     - nakedret
     - prealloc
-    - stylecheck
-    - typecheck
+    - revive
+    - staticcheck
     - whitespace
-
-linters-settings:
-  gocyclo:
-    min-complexity: 20
-  goconst:
-    min-len: 3
-    min-occurrences: 5
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-      - hugeParam
-      - paramTypeCombine
-      - emptyStringTest
-  mnd:
-    checks:
-      - argument
-      - case
-      - condition
-      - operation
-      - return
-      - assign
-  gocognit:
-    min-complexity: 30
-  nakedret:
-    max-func-lines: 30
-  prealloc:
-    simple: true
-    range-loops: true
-    for-loops: false
-  revive:
+  settings:
+    gocognit:
+      min-complexity: 30
+    goconst:
+      min-len: 3
+      min-occurrences: 5
+    gocritic:
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+        - hugeParam
+        - paramTypeCombine
+        - emptyStringTest
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 20
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+    nakedret:
+      max-func-lines: 30
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+    staticcheck:
+      checks:
+        - all
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-  stylecheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - mnd
-        - gocognit
-        - gocyclo
-        - errcheck
-        - goconst
-        - godot
-        - gocritic
-        - revive
-    - path: test/
-      linters:
-        - mnd
-        - gocognit
-        - gocyclo
-        - gosec
-        - errcheck
-        - goconst
-        - godot
-        - gocritic
-        - revive
-    - path: mocks/
-      linters:
-        - mnd
-        - gocognit
-        - gocyclo
-        - gosec
-        - unused
-        - errcheck
-        - goconst
-        - godot
-        - gocritic
-        - revive
-    - text: "should have a package comment"
-      linters:
-        - revive
-    - text: "exported function should have comment"
-      linters:
-        - revive
-    - text: "exported type should have comment"
-      linters:
-        - revive
-    - text: "exported var should have comment"
-      linters:
-        - revive
-    - text: "Error return value of.*is not checked"
-      linters:
-        - errcheck
-    - text: "cognitive complexity.*is high"
-      linters:
-        - gocognit
-    - text: "string.*has.*occurrences, make it a constant"
-      linters:
-        - goconst
-    - text: "hugeParam.*is heavy"
-      linters:
-        - gocritic
-    - text: "paramTypeCombine.*could be replaced"
-      linters:
-        - gocritic
-    - text: "emptyStringTest.*replace.*with"
-      linters:
-        - gocritic
-    - text: "commentFormatting.*put a space"
-      linters:
-        - gocritic
-    - text: "Comment should end in a period"
-      linters:
-        - godot
-    - text: "File is not properly formatted"
-      linters:
-        - gofumpt
-    - text: "unnecessary leading newline"
-      linters:
-        - whitespace
-    - path: prompts/
-      linters:
-        - gocyclo
-        - gocognit
-    - path: tools/
-      linters:
-        - gocyclo
-        - gocognit
-        - mnd
-    - path: utils/
-      linters:
-        - mnd
-    - path: main.go
-      linters:
-        - mnd
-
+      - linters:
+          - errcheck
+          - gocognit
+          - goconst
+          - gocritic
+          - gocyclo
+          - godot
+          - mnd
+          - revive
+        path: _test\.go
+      - linters:
+          - errcheck
+          - gocognit
+          - goconst
+          - gocritic
+          - gocyclo
+          - godot
+          - gosec
+          - mnd
+          - revive
+        path: test/
+      - linters:
+          - errcheck
+          - gocognit
+          - goconst
+          - gocritic
+          - gocyclo
+          - godot
+          - gosec
+          - mnd
+          - revive
+          - unused
+        path: mocks/
+      - linters:
+          - revive
+        text: should have a package comment
+      - linters:
+          - revive
+        text: exported function should have comment
+      - linters:
+          - revive
+        text: exported type should have comment
+      - linters:
+          - revive
+        text: exported var should have comment
+      - linters:
+          - errcheck
+        text: Error return value of.*is not checked
+      - linters:
+          - gocognit
+        text: cognitive complexity.*is high
+      - linters:
+          - goconst
+        text: string.*has.*occurrences, make it a constant
+      - linters:
+          - gocritic
+        text: hugeParam.*is heavy
+      - linters:
+          - gocritic
+        text: paramTypeCombine.*could be replaced
+      - linters:
+          - gocritic
+        text: emptyStringTest.*replace.*with
+      - linters:
+          - gocritic
+        text: commentFormatting.*put a space
+      - linters:
+          - godot
+        text: Comment should end in a period
+      - linters:
+          - whitespace
+        text: unnecessary leading newline
+      - linters:
+          - gocognit
+          - gocyclo
+        path: prompts/
+      - linters:
+          - gocognit
+          - gocyclo
+          - mnd
+        path: tools/
+      - linters:
+          - mnd
+        path: utils/
+      - linters:
+          - mnd
+        path: main.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 severity:
-  default-severity: error
+  default: error
   rules:
-    - linters: [gosec]
+    - linters:
+        - gosec
       severity: warning
-    - linters: [misspell]
+    - linters:
+        - misspell
       severity: warning
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -92,14 +92,15 @@ func ListAllocationsHandler(client utils.AllocationAPI, logger *log.Logger) func
 		}
 
 		filtered := allocations[:0:0]
-		for _, a := range allocations {
+		for i := range allocations {
+			a := &allocations[i]
 			if nodeID != "" && !strings.HasPrefix(a.NodeID, nodeID) {
 				continue
 			}
 			if clientStatus != "" && a.ClientStatus != clientStatus {
 				continue
 			}
-			filtered = append(filtered, a)
+			filtered = append(filtered, *a)
 		}
 
 		var payload interface{} = filtered
@@ -192,7 +193,8 @@ type compactAlloc struct {
 // (full objects with event histories are ~7KB each, ~4.5MB for namespace "*").
 func compactAllocations(in []types.Allocation) []compactAlloc {
 	out := make([]compactAlloc, 0, len(in))
-	for _, a := range in {
+	for i := range in {
+		a := &in[i]
 		c := compactAlloc{
 			ID: a.ID, Namespace: a.Namespace, JobID: a.JobID, TaskGroup: a.TaskGroup,
 			NodeID: a.NodeID, NodeName: a.NodeName, ClientStatus: a.ClientStatus,

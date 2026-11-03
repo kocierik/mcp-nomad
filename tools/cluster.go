@@ -72,16 +72,14 @@ func GetClusterLeaderHandler(client utils.ClusterToolsAPI, logger *log.Logger) f
 			raftProtocol, _ := serverMap["RaftProtocol"].(string)
 			voter, _ := serverMap["Voter"].(bool)
 
-			server := types.RaftOperator{
+			servers = append(servers, types.RaftOperator{
 				Address:      address,
 				ID:           id,
 				Leader:       leader,
 				Node:         node,
 				RaftProtocol: raftProtocol,
 				Voter:        voter,
-			}
-
-			servers = append(servers, server)
+			})
 		}
 
 		serversJSON, err := json.MarshalIndent(servers, "", " ")
@@ -97,7 +95,6 @@ func GetClusterLeaderHandler(client utils.ClusterToolsAPI, logger *log.Logger) f
 func ListClusterPeersHandler(client utils.ClusterToolsAPI, logger *log.Logger) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		body, err := client.ListClusterPeers(ctx)
-
 		if err != nil {
 			logger.Printf("Error getting cluster configuration: %v", err)
 			return mcp.NewToolResultErrorFromErr("Failed to get cluster configuration", err), nil

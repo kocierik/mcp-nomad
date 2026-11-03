@@ -28,14 +28,12 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/kocierik/mcp-nomad/prompts"
@@ -44,76 +42,33 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// authKey is a custom context key for storing the auth token
-type authKey struct{}
+var (
+	version   = "0.3.2"
+	buildTime = "unknown"
+	goVersion = "unknown"
+)
 
-// withAuthKey adds an auth key to the context
-func withAuthKey(ctx context.Context, auth string) context.Context {
-	return context.WithValue(ctx, authKey{}, auth)
-}
-
-// authFromRequest extracts the auth token from the request headers
-func authFromRequest(ctx context.Context, r *http.Request) context.Context {
-	// If no token is provided, return the context as is
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		return ctx
-	}
-	token = utils.CanonicalAuthorizationBearer(token)
-	if token == "" {
-		return ctx
-	}
-	return withAuthKey(ctx, token)
-}
-
-// authFromEnv extracts the auth token from the environment
-func authFromEnv(ctx context.Context) context.Context {
-	// If no token is provided, return the context as is
-	token := os.Getenv("NOMAD_TOKEN")
-	if token == "" {
-		return ctx
-	}
-	return withAuthKey(ctx, token)
-}
-
-// validateOrigin checks if the request origin is allowed
-func validateOrigin(r *http.Request) bool {
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		return true // Allow requests without Origin header (e.g., from curl)
-	}
-
-	// Allow localhost origins
-	allowedOrigins := []string{
-		"http://localhost",
-		"http://127.0.0.1",
-		os.Getenv("NOMAD_ADDR"),
-	}
-
-	for _, allowed := range allowedOrigins {
-		if strings.HasPrefix(origin, allowed) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// originValidationMiddleware validates the origin of incoming requests
-func originValidationMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !validateOrigin(r) {
-			http.Error(w, "Invalid origin", http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+type toolRegistrationDeps interface {
+	utils.JobAPI
+	utils.DeploymentAPI
+	utils.NamespaceAPI
+	utils.NodeAPI
+	utils.AllocationAPI
+	utils.VariableAPI
+	utils.VolumeAPI
+	utils.ACLToolsDeps
+	utils.LogAPI
+	utils.ClusterToolsAPI
+	utils.SentinelAPI
+	utils.DynamicResourcesNomad
 }
 
 func main() {
 	// Define flags
 	transport := flag.String("transport", "stdio", "Transport type (stdio, sse, or streamable-http)")
 	port := flag.String("port", "8080", "Port for HTTP server")
+	listenAddress := flag.String("listen-address", "127.0.0.1", "Address for HTTP server listener")
+	readOnly := flag.Bool("read-only", false, "Register only read tools")
 	// nomadAddr := flag.String("nomad-addr", "http://localhost:4646", "Nomad server address")
 	flag.Parse()
 
@@ -124,6 +79,8 @@ func main() {
 
 	// Get token from environment
 	token := os.Getenv("NOMAD_TOKEN")
+	mcpToken := os.Getenv("MCP_TOKEN")
+	mcpAllowedOrigins := os.Getenv("MCP_ALLOWED_ORIGINS")
 
 	// Set up logging
 	logger := log.New(os.Stderr, "[NomadMCP] ", log.LstdFlags)
@@ -131,11 +88,26 @@ func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
 		"Nomad MCP",
-		"0.1.4",
+		version,
 		server.WithResourceCapabilities(true, true),
 		server.WithLogging(),
 		server.WithRecovery(),
 	)
+
+	var securityConfig httpSecurityConfig
+	if *transport == "sse" || *transport == "streamable-http" {
+		if mcpToken == "" {
+			logger.Fatalf("MCP_TOKEN is required for HTTP transports")
+		}
+		allowedOrigins, err := buildAllowedOrigins(mcpAllowedOrigins, *port)
+		if err != nil {
+			logger.Fatalf("Invalid MCP_ALLOWED_ORIGINS: %v", err)
+		}
+		securityConfig = httpSecurityConfig{
+			tokenHash:      sha256Hex(mcpToken),
+			allowedOrigins: allowedOrigins,
+		}
+	}
 
 	// Initialize Nomad client with token
 	nomadClient, err := utils.NewNomadClient(nomadAddr, token)
@@ -143,8 +115,7 @@ func main() {
 		logger.Fatalf("Failed to create Nomad client: %v", err)
 	}
 
-	// Register all tools
-	registerTools(s, nomadClient, logger)
+	registerToolsWithPolicy(s, nomadClient, logger, *readOnly)
 
 	// Register all prompts
 	prompts.RegisterPrompts(s)
@@ -155,30 +126,23 @@ func main() {
 	switch *transport {
 	case "stdio":
 		logger.Println("Server started on stdio")
-		if err := server.ServeStdio(s, server.WithStdioContextFunc(authFromEnv)); err != nil {
+		if err := server.ServeStdio(s); err != nil {
 			logger.Fatalf("Server error: %v", err)
 		}
 	case "sse":
-		// Parse the Nomad address to get the host
-		nomadURL, err := url.Parse(nomadAddr)
-		if err != nil {
-			logger.Fatalf("Invalid nomad-addr: %v", err)
-		}
-		logger.Printf("Nomad URL: %s", nomadURL.Hostname())
+		baseURL := fmt.Sprintf("http://%s", net.JoinHostPort(advertisedListenHost(*listenAddress), *port))
 
 		// Create SSE server
 		sseServer := server.NewSSEServer(s,
-			server.WithBaseURL(fmt.Sprintf("http://%s:%s", nomadURL.Hostname(), *port)),
-			server.WithSSEContextFunc(authFromRequest),
+			server.WithBaseURL(baseURL),
 		)
 
-		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:              fmt.Sprintf("%s:%s", "0.0.0.0", *port),
-			Handler:           originValidationMiddleware(sseServer),
+			Addr:              net.JoinHostPort(*listenAddress, *port),
+			Handler:           newHTTPAuthOriginMiddleware(sseServer, securityConfig),
 			ReadHeaderTimeout: 30 * time.Second,
 			ReadTimeout:       30 * time.Second,
-			WriteTimeout:      30 * time.Second,
+			WriteTimeout:      0,
 			IdleTimeout:       60 * time.Second,
 		}
 
@@ -187,25 +151,15 @@ func main() {
 			logger.Fatalf("Server error: %v", err)
 		}
 	case "streamable-http":
-		// Parse the Nomad address to get the host
-		nomadURL, err := url.Parse(nomadAddr)
-		if err != nil {
-			logger.Fatalf("Invalid nomad-addr: %v", err)
-		}
-		logger.Printf("Nomad URL: %s", nomadURL.Hostname())
-
 		// Create StreamableHTTP server
-		streamableServer := server.NewStreamableHTTPServer(s,
-			server.WithHTTPContextFunc(authFromRequest),
-		)
+		streamableServer := server.NewStreamableHTTPServer(s)
 
-		// Create HTTP server with origin validation middleware
 		httpServer := &http.Server{
-			Addr:              fmt.Sprintf("%s:%s", "0.0.0.0", *port),
-			Handler:           originValidationMiddleware(streamableServer),
+			Addr:              net.JoinHostPort(*listenAddress, *port),
+			Handler:           newHTTPAuthOriginMiddleware(streamableServer, securityConfig),
 			ReadHeaderTimeout: 30 * time.Second,
 			ReadTimeout:       30 * time.Second,
-			WriteTimeout:      30 * time.Second,
+			WriteTimeout:      0,
 			IdleTimeout:       60 * time.Second,
 		}
 
@@ -219,7 +173,12 @@ func main() {
 }
 
 // Register all tools with the MCP server
-func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *log.Logger) {
+func registerToolsWithPolicy(s *server.MCPServer, nomadClient toolRegistrationDeps, logger *log.Logger, readOnly bool) {
+	registerTools(s, nomadClient, logger)
+	applyToolPolicy(s, readOnly)
+}
+
+func registerTools(s *server.MCPServer, nomadClient toolRegistrationDeps, logger *log.Logger) {
 	// Register job-related tools
 	tools.RegisterJobTools(s, nomadClient, logger)
 
@@ -248,7 +207,14 @@ func registerTools(s *server.MCPServer, nomadClient *utils.NomadClient, logger *
 	tools.RegisterLogTools(s, nomadClient, logger)
 
 	// Register resources
-	tools.RegisterResources(s, nomadClient, logger)
+	tools.RegisterResourcesWithOptions(s, nomadClient, logger, tools.ResourceOptions{
+		ReadmeContent:  readmeAsset(),
+		LicenseContent: licenseAsset(),
+		ServerVersion:  version,
+		BuildTime:      buildTime,
+		GoVersion:      goVersion,
+		StartTime:      time.Now().UTC(),
+	})
 
 	// Register cluster tools
 	tools.RegisterClusterTools(s, nomadClient, logger)

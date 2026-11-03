@@ -18,6 +18,8 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
+    ldflags:
+      - -X main.version={{.Version}} -X main.buildTime={{.Date}} -X main.goVersion={{.Env.GO_VERSION}}
     goos:
       - linux
       - windows
