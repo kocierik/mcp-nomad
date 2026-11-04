@@ -8,9 +8,10 @@
 
 <p align="center">
   <a href="#use-with-claude">Use with Claude</a> ⚙
+  <a href="#available-tools">Tools</a> ⚙
   <a href="#server-options">Server options</a> ⚙
   <a href="#browse-with-mcp-inspector">MCP Inspector (testing)</a> ⚙
-  <a href="https://github.com/kocierik/mcp-nomad/blob/main/CONTRIBUTING.md">Contributing ↗</a> ⚙
+  <a href="https://github.com/kocierik/mcp-nomad/blob/main/DEVELOPMENT.md">Development ↗</a> ⚙
   <a href="https://modelcontextprotocol.io">About MCP ↗</a>
 </p>
 
@@ -102,9 +103,29 @@ Download the binary and configure Claude Desktop like so:
 ### Building from Source
 
 ```bash
-go get github.com/kocierik/mcp-nomad
-go install github.com/kocierik/mcp-nomad
+go install github.com/kocierik/mcp-nomad@latest
 ```
+
+## Available tools
+
+51 tools grouped by area. Write tools are removed from discovery and calls when the server runs with `-read-only`, which leaves 31 read tools.
+
+| Area | Read | Write |
+| --- | --- | --- |
+| Jobs | `list_jobs`, `get_job`, `get_job_summary`, `get_job_allocations`, `get_job_evaluations`, `get_evaluation`, `get_job_deployments`, `get_job_services` | `run_job`, `stop_job`, `scale_job` |
+| Deployments | `list_deployments`, `get_deployment` | |
+| Allocations | `list_allocations`, `get_allocation`, `get_allocation_logs` | `stop_allocation` |
+| Nodes | `list_nodes`, `get_node` | `drain_node`, `eligibility_node` |
+| Namespaces | `list_namespaces` | `create_namespace`, `delete_namespace` |
+| Variables | `list_variables`, `get_variable` | `create_variable`, `delete_variable` |
+| Volumes | `list_volumes`, `get_volume` | `delete_volume` |
+| ACL | `list_acl_tokens`, `get_acl_token`, `list_acl_policies`, `get_acl_policy`, `list_acl_roles`, `get_acl_role` | `create_acl_token`, `delete_acl_token`, `create_acl_policy`, `delete_acl_policy`, `create_acl_role`, `delete_acl_role`, `bootstrap_acl_token` |
+| Sentinel | `list_sentinel_policies`, `get_sentinel_policy` | `create_sentinel_policy`, `delete_sentinel_policy` |
+| Cluster | `get_cluster_leader`, `list_cluster_peers`, `list_regions` | |
+
+Read tools are annotated `readOnlyHint`; write tools are annotated `destructiveHint`. Annotations are hints for clients, not an authorization mechanism: Nomad ACLs on `NOMAD_TOKEN` remain the real boundary.
+
+The server also exposes resources (`docs://readme`, `docs://license`, `system://info`, and `nomad://` templates for job specs, job history, node status/resources, and allocation status/logs) and prompts.
 
 ## Server options
 
@@ -118,7 +139,7 @@ Command-line flags (also relevant when pairing with MCP Inspector against a manu
   -listen-address string
 	    Address for HTTP server listener (default "127.0.0.1")
   -read-only
-	    Register only read tools (default "false")
+	    Register only read tools
 ```
 
 ### Environment variables
@@ -129,13 +150,15 @@ Command-line flags (also relevant when pairing with MCP Inspector against a manu
 - `MCP_ALLOWED_ORIGINS`: optional comma-separated exact HTTP(S) origins for HTTP transports (strict validation)
 - `NOMAD_REGION`: forwarded as the REST `region` query parameter when callers do not override it (multi-region clusters)
 - `NOMAD_NAMESPACE`: default namespace for tools/resources that accept an optional namespace when the request omits it (an explicit namespace argument/query still overrides this default)
-- TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME` (see `utils/client.go` / `buildTLSConfig`)
+- TLS: `NOMAD_CACERT`, `NOMAD_SKIP_VERIFY`, `NOMAD_TLS_SERVER_NAME`, and mutual TLS via `NOMAD_CLIENT_CERT` + `NOMAD_CLIENT_KEY` (see `utils/client.go` / `buildTLSConfig`)
 
 The HTTP client follows the official `/v1/` API and is split across `utils/client_*.go`; MCP tools depend on narrow interfaces in `utils/nomad_tool_interfaces.go`.
 
 `NomadClient.MakeRequest` (used only for a few cluster/legacy call sites) rejects paths outside an internal allow-list — prefer typed helpers such as `StopAllocation`.
 
 ### HTTP authentication and origin policy
+
+> **Upgrade note:** since the hardening release, `sse` and `streamable-http` refuse to start without `MCP_TOKEN` and listen on `127.0.0.1` by default. The stdio transport (used by Claude Desktop) is unchanged.
 
 - HTTP transports require `Authorization: Bearer <MCP_TOKEN>` on every request.
 - Authentication identity is a static shared token; it is not OAuth and does not provide per-user delegation.
@@ -192,13 +215,13 @@ npx @modelcontextprotocol/inspector npx @kocierik/mcp-nomad
 
 ### Inspector with a local HTTP server (optional)
 
-Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, start the binary in another terminal first:
+Default transport is **stdio**. To attach the Inspector as **Streamable HTTP**, set `MCP_TOKEN` and `MCP_ALLOWED_ORIGINS` (see above), then start the binary in another terminal:
 
 ```bash
 go run . -transport=streamable-http -listen-address=127.0.0.1 -port=8080
 ```
 
-Then open **`http://localhost:8080/mcp`** in the Inspector. For `-transport=sse`, use **`http://localhost:8080/sse`**.
+Then open **`http://localhost:8080/mcp`** in the Inspector and enter the same `MCP_TOKEN` as the bearer token in its authentication settings. For `-transport=sse`, use **`http://localhost:8080/sse`**.
 
 For container or remote-host ingress, use `-listen-address=0.0.0.0` intentionally and put TLS/auth hardening at a trusted reverse proxy boundary.
 
