@@ -1,6 +1,6 @@
 {
   "name": "@kocierik/mcp-nomad",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "main": "./index.js",
   "scripts": {
     "test": "node --test index.test.js"
@@ -9,12 +9,12 @@
     "mcp-nomad": "bin/cli"
   },
   "optionalDependencies": {
-    "@kocierik/mcp-nomad-linux-x64": "0.3.2",
-    "@kocierik/mcp-nomad-darwin-x64": "0.3.2", 
-    "@kocierik/mcp-nomad-darwin-arm64": "0.3.2",
-    "@kocierik/mcp-nomad-linux-arm64": "0.3.2",
-    "@kocierik/mcp-nomad-win32-x64": "0.3.2",
-    "@kocierik/mcp-nomad-win32-arm64": "0.3.2"
+    "@kocierik/mcp-nomad-linux-x64": "0.4.0",
+    "@kocierik/mcp-nomad-darwin-x64": "0.4.0", 
+    "@kocierik/mcp-nomad-darwin-arm64": "0.4.0",
+    "@kocierik/mcp-nomad-linux-arm64": "0.4.0",
+    "@kocierik/mcp-nomad-win32-x64": "0.4.0",
+    "@kocierik/mcp-nomad-win32-arm64": "0.4.0"
   },
   "repository": {
     "type": "git",
