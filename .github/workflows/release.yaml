@@ -35,7 +35,7 @@ jobs:
 
       - name: Run goreleaser build
         run: |
-          goreleaser release --clean
+          GO_VERSION="$(go env GOVERSION)" goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
